@@ -101,11 +101,11 @@ export function buildSkirmishScenario(): Scenario {
     weather: "clear",
     terrain: buildTerrain(),
     sides: [
-      { id: "red", name: "紅軍", color: "#b03030", controller: "human" },
+      { id: "red", name: "紅軍", color: "#a01818", controller: "human" },
       {
         id: "blue",
         name: "藍軍",
-        color: "#2a4d9e",
+        color: "#1e3a8a",
         controller: "ai",
         aiDifficulty: "easy",
       },

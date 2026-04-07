@@ -50,6 +50,17 @@ export function HexMap({ state, dispatch }: HexMapProps) {
     [state.scenario.terrain],
   );
 
+  // 哪些格被哪一方單位佔據（用於 cell tint）
+  const occupancy = useMemo(() => {
+    const map = new Map<string, string>(); // hexKey -> sideColor
+    for (const u of state.units) {
+      if (u.state === "destroyed") continue;
+      const side = state.scenario.sides.find((s) => s.id === u.sideId);
+      if (side) map.set(hexKey(u.pos), side.color);
+    }
+    return map;
+  }, [state.units, state.scenario.sides]);
+
   // viewBox 計算
   const pixels = terrainEntries.map(([key]) =>
     hexToPixel(parseHexKey(key), HEX_SIZE),
@@ -158,6 +169,14 @@ export function HexMap({ state, dispatch }: HexMapProps) {
                 stroke="#1a1612"
                 strokeWidth={0.8}
               />
+              {occupancy.has(key) && (
+                <polygon
+                  points={pointsStr}
+                  fill={occupancy.get(key)}
+                  opacity={0.32}
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
               {isReachable && (
                 <polygon
                   points={pointsStr}
