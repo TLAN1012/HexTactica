@@ -1,0 +1,43 @@
+{
+  "id": "velite",
+  "nameI18n": { "zh": "標槍兵", "en": "Velite" },
+  "baseStats": {
+    "move": 4,
+    "shockAttack": 3,
+    "meleeAttack": 2,
+    "rangedAttack": 4,
+    "range": 2,
+    "armor": 2,
+    "morale": 5,
+    "strength": 4
+  },
+  "tags": ["skirmisher", "javelineer"],
+  "stateMachine": "velite",
+  "emblem": {
+    "shape": "round",
+    "symbol": "javelin",
+    "strokeColor": "#C19A6B"
+  },
+  "traits": [
+    {
+      "id": "javelin-throw",
+      "trigger": "onRanged",
+      "condition": { "state": "ready" },
+      "effect": { "stat": "rangedAttack", "op": "add", "value": 0 },
+      "description": "一次性投擲標槍（ready 狀態下可射擊；投擲後進入 committed）"
+    },
+    {
+      "id": "committed-charge",
+      "trigger": "onCommitted",
+      "effect": { "stat": "move", "op": "add", "value": 1 },
+      "description": "committed 狀態下必須每回合朝最近敵軍衝鋒，移動 +1"
+    },
+    {
+      "id": "spent-melee-debuff",
+      "trigger": "onMelee",
+      "condition": { "state": "spent" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": -1 },
+      "description": "目標擊破後 spent 狀態近戰 −1"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "heavy-cavalry",
+  "nameI18n": { "zh": "重騎兵", "en": "Heavy Cavalry" },
+  "baseStats": {
+    "move": 4,
+    "shockAttack": 6,
+    "meleeAttack": 4,
+    "rangedAttack": 0,
+    "range": 0,
+    "armor": 4,
+    "morale": 7,
+    "strength": 6
+  },
+  "tags": ["cavalry", "melee", "heavy"],
+  "emblem": {
+    "shape": "shield",
+    "symbol": "horse-heavy",
+    "strokeColor": "#8B0000"
+  },
+  "traits": [
+    {
+      "id": "plains-charge",
+      "trigger": "onShock",
+      "condition": { "terrain": "plains" },
+      "effect": { "stat": "shockAttack", "op": "add", "value": 2 },
+      "description": "平原衝鋒 +2"
+    },
+    {
+      "id": "forest-disadvantage",
+      "trigger": "onMelee",
+      "condition": { "terrain": "forest" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": -3 },
+      "description": "林地近戰 −3"
+    },
+    {
+      "id": "swamp-disadvantage",
+      "trigger": "onMelee",
+      "condition": { "terrain": "swamp" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": -3 },
+      "description": "沼澤近戰 −3"
+    },
+    {
+      "id": "vs-spear-wall",
+      "trigger": "onShock",
+      "condition": { "targetTag": "anti-cavalry" },
+      "effect": { "stat": "shockAttack", "op": "add", "value": -3 },
+      "description": "衝撞長槍陣 −3"
+    }
+  ]
+}

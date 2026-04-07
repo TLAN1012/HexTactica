@@ -1,0 +1,30 @@
+:root {
+  font-family: system-ui, -apple-system, "PingFang TC",
+    "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+  color-scheme: light dark;
+  color: #222;
+  background-color: #faf7f0;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #ddd;
+    background-color: #1a1814;
+  }
+}
