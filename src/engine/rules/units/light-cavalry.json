@@ -1,0 +1,42 @@
+{
+  "id": "light-cavalry",
+  "nameI18n": { "zh": "輕騎兵", "en": "Light Cavalry" },
+  "baseStats": {
+    "move": 6,
+    "shockAttack": 3,
+    "meleeAttack": 2,
+    "rangedAttack": 1,
+    "range": 1,
+    "armor": 2,
+    "morale": 5,
+    "strength": 5
+  },
+  "tags": ["cavalry", "skirmisher"],
+  "emblem": {
+    "shape": "round",
+    "symbol": "horse-light",
+    "strokeColor": "#D4A017"
+  },
+  "traits": [
+    {
+      "id": "parthian-shot",
+      "trigger": "onRanged",
+      "effect": { "stat": "rangedAttack", "op": "add", "value": 0 },
+      "description": "帕提亞射法：移動後仍可射擊一次（屬動作允許型 trait，未來引擎需擴充 schema 表達；目前以 add 0 佔位）"
+    },
+    {
+      "id": "flank-bonus",
+      "trigger": "onMelee",
+      "condition": { "facing": "flank" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": 2 },
+      "description": "側背攻擊近戰 +2"
+    },
+    {
+      "id": "rear-bonus",
+      "trigger": "onMelee",
+      "condition": { "facing": "rear" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": 2 },
+      "description": "背面攻擊近戰 +2"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "id": "spearman",
+  "nameI18n": { "zh": "槍兵", "en": "Spearman" },
+  "baseStats": {
+    "move": 3,
+    "shockAttack": 3,
+    "meleeAttack": 3,
+    "rangedAttack": 0,
+    "range": 0,
+    "armor": 3,
+    "morale": 6,
+    "strength": 7
+  },
+  "tags": ["infantry", "anti-cavalry"],
+  "emblem": {
+    "shape": "shield",
+    "symbol": "spear",
+    "strokeColor": "#2F4F4F"
+  },
+  "traits": [
+    {
+      "id": "anti-cavalry",
+      "trigger": "onMelee",
+      "condition": { "targetTag": "cavalry" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": 3 },
+      "description": "對騎兵近戰 +3"
+    },
+    {
+      "id": "set-spears",
+      "trigger": "onShock",
+      "condition": { "targetTag": "cavalry" },
+      "effect": { "stat": "shockAttack", "op": "add", "value": -2 },
+      "description": "佈陣槍牆：受騎兵衝鋒時對方 onShock −2（自身移動 −1 屬代價型副作用，未來引擎需擴充 schema 表達）"
+    },
+    {
+      "id": "formation-heavy-forest",
+      "trigger": "onMelee",
+      "condition": { "terrain": "forest" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": -2 },
+      "description": "陣形於森林中瓦解，近戰 −2"
+    },
+    {
+      "id": "formation-heavy-swamp",
+      "trigger": "onMelee",
+      "condition": { "terrain": "swamp" },
+      "effect": { "stat": "meleeAttack", "op": "add", "value": -2 },
+      "description": "陣形於沼澤中瓦解，近戰 −2"
+    }
+  ]
+}

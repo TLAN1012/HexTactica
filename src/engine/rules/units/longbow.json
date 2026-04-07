@@ -1,0 +1,42 @@
+{
+  "id": "longbow",
+  "nameI18n": { "zh": "長弓兵", "en": "Longbowman" },
+  "baseStats": {
+    "move": 3,
+    "shockAttack": 0,
+    "meleeAttack": 2,
+    "rangedAttack": 5,
+    "range": 6,
+    "armor": 2,
+    "morale": 5,
+    "strength": 5
+  },
+  "tags": ["ranged", "deployable"],
+  "emblem": {
+    "shape": "shield",
+    "symbol": "longbow",
+    "strokeColor": "#7B3F00"
+  },
+  "traits": [
+    {
+      "id": "heavy-rain-penalty",
+      "trigger": "onRanged",
+      "condition": { "weather": "rain" },
+      "effect": { "stat": "rangedAttack", "op": "add", "value": -3 },
+      "description": "雨中射擊 −3（弓弦受潮）"
+    },
+    {
+      "id": "deploy-required",
+      "trigger": "onDeploy",
+      "effect": { "stat": "range", "op": "add", "value": 0 },
+      "description": "需 1 回合佈署才可使用最遠 2 格射程（佈署型 trait，未來引擎需擴充 schema；目前以 add 0 佔位）"
+    },
+    {
+      "id": "anti-heavy",
+      "trigger": "onRanged",
+      "condition": { "targetTag": "heavy" },
+      "effect": { "stat": "rangedAttack", "op": "add", "value": 1 },
+      "description": "對 heavy 標籤單位射擊 +1（破甲箭）"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+[
+  {
+    "id": "plains",
+    "nameI18n": { "zh": "平原", "en": "Plains" },
+    "moveCost": 1,
+    "defenseModifier": 0,
+    "color": "#d8c89a",
+    "traits": []
+  },
+  {
+    "id": "hills",
+    "nameI18n": { "zh": "丘陵", "en": "Hills" },
+    "moveCost": 2,
+    "defenseModifier": 1,
+    "visionModifier": 1,
+    "color": "#c9a876",
+    "traits": []
+  },
+  {
+    "id": "forest",
+    "nameI18n": { "zh": "森林", "en": "Forest" },
+    "moveCost": 3,
+    "defenseModifier": 2,
+    "blocksCavalry": true,
+    "visionModifier": -2,
+    "color": "#6b8e4e",
+    "traits": []
+  },
+  {
+    "id": "swamp",
+    "nameI18n": { "zh": "沼澤", "en": "Swamp" },
+    "moveCost": 3,
+    "defenseModifier": -1,
+    "color": "#5d6b5d",
+    "traits": []
+  },
+  {
+    "id": "river",
+    "nameI18n": { "zh": "河流", "en": "River" },
+    "moveCost": 4,
+    "defenseModifier": -2,
+    "color": "#6b95b8",
+    "traits": []
+  },
+  {
+    "id": "road",
+    "nameI18n": { "zh": "道路", "en": "Road" },
+    "moveCost": 0.5,
+    "defenseModifier": 0,
+    "color": "#b8956a",
+    "traits": []
+  },
+  {
+    "id": "village",
+    "nameI18n": { "zh": "村落", "en": "Village" },
+    "moveCost": 2,
+    "defenseModifier": 2,
+    "color": "#c97d4e",
+    "traits": []
+  },
+  {
+    "id": "wall",
+    "nameI18n": { "zh": "城牆", "en": "Wall" },
+    "moveCost": 99,
+    "defenseModifier": 4,
+    "blocksCavalry": true,
+    "color": "#8a8a8a",
+    "traits": []
+  }
+]

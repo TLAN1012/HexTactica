@@ -1,0 +1,44 @@
+[
+  {
+    "id": "clear",
+    "nameI18n": { "zh": "晴朗", "en": "Clear" },
+    "icon": "☀️",
+    "traits": []
+  },
+  {
+    "id": "rain",
+    "nameI18n": { "zh": "雨", "en": "Rain" },
+    "icon": "🌧️",
+    "traits": []
+  },
+  {
+    "id": "fog",
+    "nameI18n": { "zh": "濃霧", "en": "Fog" },
+    "icon": "🌫️",
+    "traits": []
+  },
+  {
+    "id": "wind-head",
+    "nameI18n": { "zh": "逆風", "en": "Headwind" },
+    "icon": "💨",
+    "traits": []
+  },
+  {
+    "id": "wind-tail",
+    "nameI18n": { "zh": "順風", "en": "Tailwind" },
+    "icon": "🌬️",
+    "traits": []
+  },
+  {
+    "id": "snow",
+    "nameI18n": { "zh": "大雪", "en": "Snow" },
+    "icon": "❄️",
+    "traits": []
+  },
+  {
+    "id": "heat",
+    "nameI18n": { "zh": "酷熱", "en": "Heat" },
+    "icon": "🔥",
+    "traits": []
+  }
+]

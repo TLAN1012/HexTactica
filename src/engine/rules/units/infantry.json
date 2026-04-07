@@ -1,0 +1,21 @@
+{
+  "id": "infantry",
+  "nameI18n": { "zh": "步兵", "en": "Infantry" },
+  "baseStats": {
+    "move": 3,
+    "shockAttack": 2,
+    "meleeAttack": 4,
+    "rangedAttack": 0,
+    "range": 0,
+    "armor": 3,
+    "morale": 6,
+    "strength": 7
+  },
+  "tags": ["infantry", "melee"],
+  "emblem": {
+    "shape": "shield",
+    "symbol": "sword",
+    "strokeColor": "#505050"
+  },
+  "traits": []
+}

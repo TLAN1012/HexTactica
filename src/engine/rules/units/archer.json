@@ -1,0 +1,36 @@
+{
+  "id": "archer",
+  "nameI18n": { "zh": "弓兵", "en": "Archer" },
+  "baseStats": {
+    "move": 3,
+    "shockAttack": 0,
+    "meleeAttack": 1,
+    "rangedAttack": 3,
+    "range": 4,
+    "armor": 1,
+    "morale": 4,
+    "strength": 4
+  },
+  "tags": ["ranged", "light"],
+  "emblem": {
+    "shape": "round",
+    "symbol": "arrow",
+    "strokeColor": "#556B2F"
+  },
+  "traits": [
+    {
+      "id": "rain-penalty",
+      "trigger": "onRanged",
+      "condition": { "weather": "rain" },
+      "effect": { "stat": "rangedAttack", "op": "add", "value": -2 },
+      "description": "雨中射擊 −2"
+    },
+    {
+      "id": "high-ground",
+      "trigger": "onRanged",
+      "condition": { "terrain": "hills" },
+      "effect": { "stat": "rangedAttack", "op": "add", "value": 1 },
+      "description": "丘陵高地射擊 +1"
+    }
+  ]
+}
