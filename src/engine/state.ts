@@ -13,6 +13,7 @@ import type {
   Unit,
 } from "./types";
 import { getUnitType } from "./loadRules";
+import { resolveAttack, type AttackType } from "./combat";
 
 export function initGameState(scenario: Scenario): GameState {
   const units: Unit[] = scenario.initialUnits.map((u) => {
@@ -46,6 +47,7 @@ export function initGameState(scenario: Scenario): GameState {
 export type GameAction =
   | { type: "SELECT_UNIT"; unitId: string | null }
   | { type: "MOVE_UNIT"; unitId: string; to: Hex }
+  | { type: "ATTACK_UNIT"; attackerId: string; defenderId: string; attackType: AttackType }
   | { type: "END_TURN" };
 
 // UI 選取狀態獨立於引擎 state，放在一個簡單的 slice
@@ -93,6 +95,54 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             phase: state.phase,
             attackerId: action.unitId,
             message: `${unit.id} 移動到 ${hexKey(action.to)}`,
+          },
+        ],
+      };
+    }
+
+    case "ATTACK_UNIT": {
+      const attackerIdx = state.units.findIndex((u) => u.id === action.attackerId);
+      const defenderIdx = state.units.findIndex((u) => u.id === action.defenderId);
+      if (attackerIdx < 0 || defenderIdx < 0) return state;
+      if (state.units[attackerIdx].hasActedThisTurn) return state;
+
+      const result = resolveAttack(
+        state,
+        action.attackerId,
+        action.defenderId,
+        action.attackType,
+      );
+
+      const newUnits = [...state.units];
+      // 更新攻擊方：已行動
+      newUnits[attackerIdx] = {
+        ...newUnits[attackerIdx],
+        hasActedThisTurn: true,
+      };
+      // 更新防禦方：扣兵力、必要時死亡
+      const defender = newUnits[defenderIdx];
+      const newStrength = Math.max(0, defender.currentStrength - result.damage);
+      newUnits[defenderIdx] = {
+        ...defender,
+        currentStrength: newStrength,
+        state: newStrength <= 0 ? "destroyed" : defender.state,
+      };
+
+      return {
+        ...state,
+        units: newUnits,
+        combatLog: [
+          ...state.combatLog,
+          {
+            turn: state.turn,
+            phase: state.phase,
+            attackerId: action.attackerId,
+            defenderId: action.defenderId,
+            diceRoll: [result.diceRoll[0], result.diceRoll[1]],
+            modifiers: result.modifiers,
+            damage: result.damage,
+            moraleTriggered: result.moraleTriggered,
+            message: result.log,
           },
         ],
       };
