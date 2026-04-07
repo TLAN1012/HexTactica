@@ -349,7 +349,7 @@ function InfoBar({
       style={{
         position: "absolute",
         left: 12,
-        right: 314,
+        right: 12,
         bottom: 12,
         display: "flex",
         gap: 12,
