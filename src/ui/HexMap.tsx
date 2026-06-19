@@ -20,10 +20,17 @@ import { reachableRange } from "../engine/pathfinding";
 import { findUnitAt, type GameAction } from "../engine/state";
 import { listAttackOptions, type AttackOption } from "../engine/combat";
 import type { GameState, Unit } from "../engine/types";
-import { UnitBadge } from "./UnitBadge";
 import { CombatLog } from "./CombatLog";
 
 const HEX_SIZE = 26;
+
+// 美術資產（PNG 棋子 / 地形 tile），路徑前綴依 Vite base（GitHub Pages 子路徑）
+const ART = import.meta.env.BASE_URL + "art/";
+// 已有對應 tile 圖的地形 id；其餘（village/road/wall）退回純色
+const TERRAIN_IMAGES = new Set(["plains", "hills", "forest", "swamp", "river"]);
+// 圖是 flat-top 六角、引擎是 pointy-top → 放大後裁進尖頂六角，蓋掉白角
+const TERRAIN_COVER = 1.18;
+const UNIT_COVER = 1.12;
 
 export interface HexMapProps {
   state: GameState;
@@ -177,6 +184,12 @@ export function HexMap({ state, dispatch }: HexMapProps) {
         preserveAspectRatio="xMidYMid meet"
         style={{ width: "100%", height: "100%", display: "block" }}
       >
+        <defs>
+          {/* 引擎尖頂六角裁切罩；每格已 translate，userSpaceOnUse 會跟著走 */}
+          <clipPath id="hexClip">
+            <polygon points={pointsStr} />
+          </clipPath>
+        </defs>
         {/* 地形層 */}
         {terrainEntries.map(([key, terrainId]) => {
           const h = parseHexKey(key);
@@ -195,11 +208,33 @@ export function HexMap({ state, dispatch }: HexMapProps) {
               onMouseLeave={() => setHovered(null)}
               style={{ cursor: clickable ? "pointer" : "default" }}
             >
+              {/* 底色（兼作無圖地形的 fallback） */}
               <polygon
                 points={pointsStr}
                 fill={terrain.color}
                 stroke="#1a1612"
                 strokeWidth={0.8}
+              />
+              {/* 地形 tile 圖（裁進尖頂六角） */}
+              {TERRAIN_IMAGES.has(terrainId) && (
+                <image
+                  href={`${ART}terrain/${terrainId}.png`}
+                  x={-HEX_SIZE * TERRAIN_COVER}
+                  y={-HEX_SIZE * TERRAIN_COVER}
+                  width={HEX_SIZE * 2 * TERRAIN_COVER}
+                  height={HEX_SIZE * 2 * TERRAIN_COVER}
+                  clipPath="url(#hexClip)"
+                  preserveAspectRatio="xMidYMid slice"
+                  style={{ pointerEvents: "none" }}
+                />
+              )}
+              {/* 圖上補回格線 */}
+              <polygon
+                points={pointsStr}
+                fill="none"
+                stroke="#1a1612"
+                strokeWidth={0.8}
+                style={{ pointerEvents: "none" }}
               />
               {occupancy.has(key) && (
                 <polygon
@@ -261,32 +296,47 @@ export function HexMap({ state, dispatch }: HexMapProps) {
                 transform={`translate(${x}, ${y})`}
                 style={{ pointerEvents: "none" }}
               >
+                {/* 兵種棋子圖（裁進尖頂六角） */}
+                <image
+                  href={`${ART}units/${unit.typeId}.png`}
+                  x={-HEX_SIZE * UNIT_COVER}
+                  y={-HEX_SIZE * UNIT_COVER}
+                  width={HEX_SIZE * 2 * UNIT_COVER}
+                  height={HEX_SIZE * 2 * UNIT_COVER}
+                  clipPath="url(#hexClip)"
+                  preserveAspectRatio="xMidYMid slice"
+                />
+                {/* 陣營色環（敵我辨識；敵方專屬圖完成前以此區分） */}
+                <polygon
+                  points={pointsStr}
+                  fill="none"
+                  stroke={side?.color ?? "#888"}
+                  strokeWidth={2.5}
+                  strokeLinejoin="round"
+                />
+                {unit.hasActedThisTurn && (
+                  <polygon points={pointsStr} fill="rgba(0,0,0,0.42)" />
+                )}
+                {(unit.state === "routing" || unit.state === "shaken") && (
+                  <polygon
+                    points={pointsStr}
+                    fill="none"
+                    stroke="#ff2a2a"
+                    strokeWidth={2.5}
+                    strokeDasharray="5 3"
+                    opacity={0.85}
+                  />
+                )}
                 {isSelected && (
-                  <circle
-                    cx={0}
-                    cy={0}
-                    r={HEX_SIZE * 0.85}
+                  <polygon
+                    points={pointsStr}
                     fill="none"
                     stroke="#ffd700"
-                    strokeWidth={2.5}
+                    strokeWidth={3}
+                    strokeLinejoin="round"
                     style={{ filter: "drop-shadow(0 0 4px #ffd700)" }}
                   />
                 )}
-                {unit.hasActedThisTurn && (
-                  <circle
-                    cx={0}
-                    cy={0}
-                    r={HEX_SIZE * 0.85}
-                    fill="rgba(0,0,0,0.35)"
-                  />
-                )}
-                <g transform={`scale(${(HEX_SIZE * 0.75) / 50})`}>
-                  <UnitBadge
-                    emblem={type.emblem}
-                    sideColor={side?.color ?? "#888"}
-                    state={unit.state}
-                  />
-                </g>
                 {/* 兵力條 */}
                 <g transform={`translate(0, ${HEX_SIZE * 0.75})`}>
                   <rect
