@@ -1,54 +1,122 @@
-import { useReducer, useState } from "react";
-import { HexMap } from "./ui/HexMap";
-import { gameReducer, initGameState } from "./engine/state";
-import { buildSkirmishScenario } from "./scenarios/skirmishTest";
+/**
+ * App — 畫面路由:標題 → 戰役地圖 ⇄ 軍營 / 戰鬥
+ * 戰役進度即時寫入 localStorage;戰鬥不存檔(中離視同撤退)。
+ */
+import { useCallback, useEffect, useState } from "react";
+import { initBattle } from "./game/battle";
+import {
+  applyBattleResult,
+  clearSave,
+  ensureViable,
+  getMission,
+  loadCampaign,
+  newCampaign,
+  saveCampaign,
+  type BattleResult,
+} from "./game/campaign";
+import type { BattleState, CampaignState, MissionDef } from "./game/types";
+import { ArmyScreen } from "./ui/ArmyScreen";
+import { BattleScreen } from "./ui/BattleScreen";
+import { CampaignScreen } from "./ui/CampaignScreen";
+import { TitleScreen } from "./ui/TitleScreen";
+
+type Screen = "title" | "campaign" | "army" | "battle";
 
 function App() {
-  const [scenario] = useState(() => buildSkirmishScenario());
-  const [state, dispatch] = useReducer(gameReducer, scenario, initGameState);
+  const [screen, setScreen] = useState<Screen>("title");
+  const [campaign, setCampaign] = useState<CampaignState | null>(null);
+  const [battle, setBattle] = useState<BattleState | null>(null);
+  const [lastResult, setLastResult] = useState<BattleResult | null>(null);
+
+  // 戰役有變動就自動存檔
+  useEffect(() => {
+    if (campaign) saveCampaign(campaign);
+  }, [campaign]);
+
+  const updateCampaign = useCallback((next: CampaignState) => {
+    setCampaign(ensureViable(next));
+  }, []);
+
+  const startMission = useCallback(
+    (mission: MissionDef) => {
+      if (!campaign) return;
+      setBattle(initBattle(mission, campaign.roster));
+      setScreen("battle");
+    },
+    [campaign],
+  );
+
+  const finishBattle = useCallback(() => {
+    if (!campaign || !battle) return;
+    const mission = getMission(battle.missionId);
+    const { campaign: next, result } = applyBattleResult(campaign, battle, mission);
+    setCampaign(ensureViable(next));
+    setLastResult(result);
+    setBattle(null);
+    setScreen("campaign");
+  }, [campaign, battle]);
+
+  if (screen === "title") {
+    return (
+      <TitleScreen
+        hasSave={loadCampaign() !== null}
+        onContinue={() => {
+          const saved = loadCampaign();
+          if (saved) {
+            setCampaign(saved);
+            setLastResult(null);
+            setScreen("campaign");
+          }
+        }}
+        onNewGame={() => {
+          clearSave();
+          setCampaign(newCampaign());
+          setLastResult(null);
+          setScreen("campaign");
+        }}
+      />
+    );
+  }
+
+  if (!campaign) {
+    setScreen("title");
+    return null;
+  }
+
+  if (screen === "army") {
+    return (
+      <ArmyScreen
+        campaign={campaign}
+        onChange={updateCampaign}
+        onBack={() => setScreen("campaign")}
+      />
+    );
+  }
+
+  if (screen === "battle" && battle) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#1a1510", padding: "16px 0 32px" }}>
+        <BattleScreen
+          battle={battle}
+          onBattleChange={setBattle}
+          onFinish={finishBattle}
+          missionTitle={getMission(battle.missionId).title}
+        />
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: "20px 12px",
-        gap: 16,
+    <CampaignScreen
+      campaign={campaign}
+      lastResult={lastResult}
+      onStartMission={startMission}
+      onOpenArmy={() => {
+        setLastResult(null);
+        setScreen("army");
       }}
-    >
-      <header style={{ textAlign: "center" }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 28,
-            fontFamily: "system-ui, sans-serif",
-            fontWeight: 600,
-            color: "#3a2f24",
-            letterSpacing: "0.02em",
-          }}
-        >
-          HexTactica
-          <span
-            style={{ fontSize: 14, color: "#888", marginLeft: 10, fontWeight: 400 }}
-          >
-            M1 — 地圖 / 單位 / 移動範圍
-          </span>
-        </h1>
-        <p
-          style={{
-            margin: "4px 0 0",
-            color: "#666",
-            fontSize: 13,
-            fontFamily: "system-ui, sans-serif",
-          }}
-        >
-          {state.scenario.name} · 點擊己方單位查看可移動範圍，再點目標格移動
-        </p>
-      </header>
-      <HexMap state={state} dispatch={dispatch} />
-    </div>
+      onBackToTitle={() => setScreen("title")}
+    />
   );
 }
 
