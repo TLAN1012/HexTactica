@@ -280,6 +280,30 @@ function strike(
   return next;
 }
 
+/**
+ * 驗證並套用移動:目的地必須在 reachable() 內,
+ * 移動格數由實際路徑推導(不信任 action 攜帶的值)。
+ */
+function applyMove(
+  state: BattleState,
+  squadId: string,
+  to: Hex,
+): { state: BattleState; squad: Squad } | null {
+  const squad = state.squads.find((s) => s.id === squadId);
+  if (!squad || !canMove(squad)) return null;
+  const reach = reachable(state, squad);
+  if (!reach.has(hexKey(to))) return null;
+  const movedHexes = tracePath(squad, reach, to).length - 1;
+  return {
+    state: updateSquad(state, squad.id, {
+      pos: to,
+      moved: true,
+      movedThisActivation: movedHexes,
+    }),
+    squad,
+  };
+}
+
 export function battleReducer(
   state: BattleState,
   action: BattleAction,
@@ -289,29 +313,18 @@ export function battleReducer(
 
   switch (action.type) {
     case "MOVE": {
-      const squad = state.squads.find((s) => s.id === action.squadId);
-      if (!squad || !canMove(squad)) return state;
-      let next = updateSquad(state, squad.id, {
-        pos: action.to,
-        moved: true,
-        movedThisActivation: action.movedHexes,
-      });
-      next = pushLog(next, { kind: "move", text: `${label(squad)}移動` });
-      return next;
+      const moved = applyMove(state, action.squadId, action.to);
+      if (!moved) return state;
+      return pushLog(moved.state, { kind: "move", text: `${label(moved.squad)}移動` });
     }
 
     case "ATTACK":
       return resolveAttack(state, action.squadId, action.targetId, rng);
 
     case "MOVE_AND_ATTACK": {
-      const squad = state.squads.find((s) => s.id === action.squadId);
-      if (!squad || !canMove(squad)) return state;
-      const next = updateSquad(state, squad.id, {
-        pos: action.to,
-        moved: true,
-        movedThisActivation: action.movedHexes,
-      });
-      return resolveAttack(next, action.squadId, action.targetId, rng);
+      const moved = applyMove(state, action.squadId, action.to);
+      if (!moved) return state;
+      return resolveAttack(moved.state, action.squadId, action.targetId, rng);
     }
 
     case "END_TURN": {

@@ -136,7 +136,6 @@ export const MISSIONS: MissionDef[] = [
       { typeId: "infantry", level: 4 },
       { typeId: "infantry", level: 3 },
       { typeId: "longbow", level: 3 },
-      { typeId: "velite", level: 3 },
     ],
     reward: 1500,
   },
