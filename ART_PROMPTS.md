@@ -1,87 +1,106 @@
-# 美術替換指南 — 生圖 Prompt 手冊
+# 美術替換指南 — 3 張合集圖搞定全套美術
 
-遊戲的美術是**資料驅動**的:每個兵種/地形就是 `public/art/` 底下的一張 PNG,
-檔名對上就能直接替換,程式一行都不用改。你可以拿本手冊的 prompt 去
-ChatGPT(或任何生圖工具)產圖,存成對應檔名丟進資料夾即可。
+遊戲美術是**資料驅動**的:兵種/地形就是 `public/art/` 下的 PNG,檔名對上即替換。
+為了省事,整套美術簡化為 **3 張合集圖(sprite sheet)**:
+生 3 張圖 → 用切圖工具切開 → 丟進資料夾,完成。
 
-> **重要**:請讓生圖工具產出「原創」的奇幻美術。不要在 prompt 裡要求模仿
-> 特定遊戲或畫師的角色設計 — 這樣產出的圖才是可以安心使用、發佈的素材。
-
----
-
-## 一、檔案規格
-
-| 項目 | 規格 |
-|---|---|
-| 位置 | 兵種:`public/art/units/<檔名>.png`;地形:`public/art/terrain/<檔名>.png` |
-| 尺寸 | 建議 512×512(正方形),遊戲會裁切成六角形 |
-| 構圖 | **滿版無留白**(full-bleed):主體置中、佔畫面 70% 以上,背景填滿到四邊 |
-| 風格基調 | 古書銅版畫/蝕刻插畫風,羊皮紙底色,深棕色描邊,低飽和土色系 |
-
-換圖後重新整理頁面即可看到;`npm run build` 會自動打包。
+> **重要**:請讓生圖工具產出「原創」奇幻美術。不要在 prompt 裡要求模仿
+> 特定遊戲或畫師的設計 — 這樣產出的圖才能安心使用與發佈。
 
 ---
 
-## 二、共用風格前綴(每個 prompt 開頭都加這段)
+## 現成的參考合集圖(目前遊戲用的美術長什麼樣)
+
+部署後可直接下載:
+
+- 合集 1 人類戰團:`https://tlan1012.github.io/HexTactica/art/sheets/sheet-humans.png`
+- 合集 2 獸人戰團:`https://tlan1012.github.io/HexTactica/art/sheets/sheet-orcs.png`
+- 合集 3 地形:`https://tlan1012.github.io/HexTactica/art/sheets/sheet-terrain.png`
+
+(repo 內位置:`public/art/sheets/`)
+
+## 切圖工具(瀏覽器直接用,免安裝)
+
+`https://tlan1012.github.io/HexTactica/tools/art-slicer.html`
+
+把 ChatGPT 生的合集圖拖進去 → 選合集類型 → 「全部下載」,
+就會得到一格一張、**檔名已正確命名**的 PNG,直接放進
+`public/art/units/`(兵種)或 `public/art/terrain/`(地形)。
+
+---
+
+## 三段 Prompt(每段生一張圖)
+
+每段都可直接整段貼給 ChatGPT。共同要求已寫在 prompt 內:
+**等大方格、無間距無邊框、不要文字** — 這樣切圖工具才能乾淨切開。
+
+### 合集 1 — 人類戰團(4×2 方格,7 格 + 1 空格)
 
 ```
-Antique copperplate engraving / etching style fantasy illustration,
-aged parchment background, dark sepia ink outlines, muted earthy colors,
-square full-bleed composition with the subject centered and filling the frame,
-suitable as a hexagonal board-game token, no text, no watermark, no border
+Create ONE image: a sprite sheet of 8 equal square cells arranged in a
+4-column × 2-row grid with NO gaps, NO borders and NO text. Style for all
+cells: antique copperplate engraving fantasy illustration, aged parchment
+background, dark sepia ink outlines, muted earthy colors, each subject
+centered and filling its cell, consistent style across all cells.
+Cell contents, left to right, top to bottom:
+1. a medieval swordsman with round shield and arming sword, chainmail, upper-body
+2. a medieval spearman bracing a long pike, gambeson and iron helmet, upper-body
+3. a medieval archer drawing a shortbow, leather hood, quiver, upper-body
+4. a tall medieval longbowman with a longbow as tall as himself, arrow nocked, upper-body
+5. a light skirmisher hurling a javelin, small buckler, dynamic pose, upper-body
+6. a light cavalry scout with curved saber on a lean fast horse, in profile
+7. a heavily armored knight with couched lance on an armored warhorse, in profile
+8. plain empty parchment texture only
 ```
 
-中文版(有些工具中文效果更好):
+### 合集 2 — 獸人戰團(4×2 方格,7 格 + 1 空格)
 
 ```
-古董銅版畫蝕刻風格的奇幻插畫,泛黃羊皮紙底色,深褐色墨線描邊,
-低飽和土色系,正方形滿版構圖、主體置中充滿畫面,
-適合做六角棋盤遊戲棋子,不要文字、不要浮水印、不要邊框
+Create ONE image: a sprite sheet of 8 equal square cells arranged in a
+4-column × 2-row grid with NO gaps, NO borders and NO text. Style for all
+cells: antique copperplate engraving fantasy illustration, aged parchment
+background, dark sepia ink outlines, muted earthy colors, each subject
+centered and filling its cell, consistent style across all cells.
+All creatures are ORIGINAL fantasy designs. Cell contents, left to right, top to bottom:
+1. an orc warrior, green skin, heavy tusked jaw, crude iron helmet band, scimitar, bust
+2. an orc with a sharpened wooden stake as spear, red headband, snarling, bust
+3. an orc archer in dark leather hood with crude shortbow, glowing red eyes, bust
+4. a grey-skinned troll hefting a huge boulder with a leather sling, heavy brow, bust
+5. an orc skirmisher with two crossed throwing axes, red war paint on face, bust
+6. a giant grey wolf with yellow eyes and bared fangs, small orc rider on its back
+7. an armored troll with riveted iron face-plate and pauldrons, grey-green skin, bust
+8. plain empty parchment texture only
+```
+
+### 合集 3 — 地形(3×2 方格,5 格 + 1 空格)
+
+```
+Create ONE image: a sprite sheet of 6 equal square cells arranged in a
+3-column × 2-row grid with NO gaps, NO borders and NO text. Style for all
+cells: antique engraved map illustration, muted earthy colors, top-down
+view, seamless texture feel, consistent style across all cells.
+Cell contents, left to right, top to bottom:
+1. dry golden grassland with faint dirt paths
+2. rolling rocky hills with sparse dry grass
+3. dense dark-green forest canopy
+4. murky swamp with mud pools and reeds
+5. deep blue-green river water with subtle current lines
+6. plain empty parchment texture only
 ```
 
 ---
 
-## 三、人類戰團(7 個,檔名 = `public/art/units/` 下的 PNG)
+## 完整流程(兩分鐘)
 
-| 檔名 | Prompt 主體(接在風格前綴後) |
-|---|---|
-| `infantry.png` | a medieval swordsman man-at-arms with round shield and arming sword, kite-shaped shield raised, chainmail and kettle helmet, upper-body portrait |
-| `spearman.png` | a medieval spearman bracing a long pike at an angle, gambeson and simple iron helmet, determined expression, upper-body portrait |
-| `archer.png` | a medieval archer drawing a shortbow, leather hood, quiver over shoulder, upper-body portrait |
-| `longbow.png` | a tall medieval longbowman with an English longbow as tall as himself, arrow nocked, hood and leather bracer, upper-body portrait |
-| `velite.png` | a light skirmisher about to hurl a javelin, small round buckler, cloth tunic and bare arms, dynamic throwing pose, upper-body portrait |
-| `light-cavalry.png` | a light cavalry scout on a lean fast horse, curved saber, minimal leather armor, horse and rider in profile |
-| `heavy-cavalry.png` | a heavily armored knight on an armored warhorse, couched lance and great helm, horse and rider in profile |
+1. 把上面某段 prompt 貼給 ChatGPT,存下生成的合集圖
+2. 開切圖工具 `tools/art-slicer.html`,拖入圖片、選對應合集
+3. 若 AI 生的格線稍有偏移,拉「內縮裁切」滑桿微調到每格乾淨
+4. 按「全部下載」→ 把 PNG 放進 `public/art/units/` 或 `public/art/terrain/`
+5. 重新整理遊戲頁面(本機 dev 立即生效;上線需 push 到 master)
 
-## 四、碎顱氏族/獸人戰團(7 個)
+## 驗收小抄
 
-| 檔名 | Prompt 主體 |
-|---|---|
-| `orc-warrior.png` | an original fantasy orc warrior with green skin, heavy jaw and tusks, crude iron helmet band, scimitar over shoulder, bust portrait |
-| `orc-impaler.png` | an original fantasy orc with a sharpened wooden stake as a spear, red headband, snarling tusked face, bust portrait |
-| `orc-archer.png` | an original fantasy orc archer in a dark leather hood holding a crude shortbow, glowing red eyes, bust portrait |
-| `troll-slinger.png` | an original fantasy grey-skinned troll hefting a huge boulder with a leather sling, droopy ears, heavy brow, bust portrait |
-| `orc-axethrower.png` | an original fantasy orc skirmisher with two crossed throwing axes behind his head, red war paint across the face, bust portrait |
-| `wolf-rider.png` | an original fantasy giant grey wolf with yellow eyes and bared fangs, a small orc rider on its back, head-and-shoulders portrait |
-| `troll-crusher.png` | an original fantasy armored troll with riveted iron face-plate and pauldrons, grey-green skin, massive tusked jaw, bust portrait |
-
-## 五、地形(5 個,檔名 = `public/art/terrain/` 下的 PNG)
-
-| 檔名 | Prompt 主體 |
-|---|---|
-| `plains.png` | top-down view of dry golden grassland with faint dirt paths, seamless texture feel |
-| `hills.png` | top-down view of rolling rocky hills with sparse dry grass |
-| `forest.png` | top-down view of dense dark-green forest canopy |
-| `swamp.png` | top-down view of murky swamp with mud pools and reeds |
-| `river.png` | top-down view of deep blue-green river water with subtle current lines |
-
----
-
-## 六、實用小抄
-
-1. **一次一張**:一個 prompt 產一個兵種,構圖才穩定。
-2. **去背不需要**:遊戲會把圖裁進六角形並蓋上陣營色框,滿版即可。
-3. **同批風格一致**:同一個對話串裡連續生成、每次只換主體描述,整套風格最一致。
-4. **產出後檢查**:縮到 60×60 像素看 — 棋盤上就是這個大小,剪影清楚才算合格。
-5. **想換整體畫風?** 把「風格前綴」整段換掉(例如水彩、油畫、像素風),
-   14 個兵種 + 5 個地形全部重生一輪即可。
+- 縮到 60×60 像素看剪影 — 棋盤上就這麼大,認得出兵種才合格
+- 同一張合集圖內風格天生一致,這正是合集圖的好處
+- 想換整體畫風:把 prompt 裡的風格句(engraving/parchment 那兩行)整段換掉,
+  三張重生一輪即可
