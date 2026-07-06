@@ -5,9 +5,10 @@ export interface TitleScreenProps {
   hasSave: boolean;
   onContinue: () => void;
   onNewGame: () => void;
+  onTutorial: () => void;
 }
 
-export function TitleScreen({ hasSave, onContinue, onNewGame }: TitleScreenProps) {
+export function TitleScreen({ hasSave, onContinue, onNewGame, onTutorial }: TitleScreenProps) {
   return (
     <div
       style={{
@@ -33,7 +34,7 @@ export function TitleScreen({ hasSave, onContinue, onNewGame }: TitleScreenProps
         戰團戰役 — 六角戰棋單機版
       </p>
       <p style={{ margin: "4px 0 20px", fontSize: 13.5, color: "#9a8d70", maxWidth: 440, lineHeight: 1.7 }}>
-        率領你的戰團討伐血狼劫掠團。小隊制戰鬥:人數就是戰力,
+        率領你的戰團討伐碎顱氏族的獸人大軍。小隊制戰鬥:人數就是戰力,
         近戰會吃反擊、槍陣先制、騎兵衝鋒、遠程壓制 —
         打完仗記得回營補兵,死掉的士兵可不會自己復活。
       </p>
@@ -44,6 +45,9 @@ export function TitleScreen({ hasSave, onContinue, onNewGame }: TitleScreenProps
       )}
       <button onClick={onNewGame} style={btnStyle(hasSave ? "#6b5a3a" : "#2d7a3a")}>
         {hasSave ? "開新戰役(捨棄進度)" : "開始戰役"}
+      </button>
+      <button onClick={onTutorial} style={btnStyle("#5a4a8a")}>
+        📖 教學課程
       </button>
       <p style={{ marginTop: 28, fontSize: 12, color: "#6b604c" }}>
         進度自動儲存在瀏覽器 localStorage

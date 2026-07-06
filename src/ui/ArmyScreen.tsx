@@ -144,7 +144,7 @@ function RecruitTab({ campaign, onChange }: { campaign: CampaignState; onChange:
           名冊已滿({MAX_ROSTER} 隊)— 想招新隊先解散舊隊。
         </p>
       )}
-      {SQUAD_TYPES.map((t) => (
+      {SQUAD_TYPES.filter((t) => t.recruitable !== false).map((t) => (
         <div key={t.id} style={card()}>
           <img
             src={`${ART}${t.art}.png`}

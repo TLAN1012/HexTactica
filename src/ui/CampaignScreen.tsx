@@ -12,6 +12,7 @@ export interface CampaignScreenProps {
   lastResult: BattleResult | null;
   onStartMission: (mission: MissionDef) => void;
   onOpenArmy: () => void;
+  onTutorial: () => void;
   onBackToTitle: () => void;
 }
 
@@ -20,6 +21,7 @@ export function CampaignScreen({
   lastResult,
   onStartMission,
   onOpenArmy,
+  onTutorial,
   onBackToTitle,
 }: CampaignScreenProps) {
   const [selected, setSelected] = useState<MissionDef | null>(null);
@@ -47,6 +49,9 @@ export function CampaignScreen({
           <button onClick={onOpenArmy} style={smallBtn("#5a4a8a")}>
             🏕 軍營({campaign.roster.length} 隊)
           </button>
+          <button onClick={onTutorial} style={smallBtn("#3a5a7a")}>
+            📖 教學
+          </button>
           <button onClick={onBackToTitle} style={smallBtn("#4a4038")}>
             返回標題
           </button>
@@ -56,7 +61,7 @@ export function CampaignScreen({
         {lastResult && <ResultBanner result={lastResult} campaign={campaign} />}
         {allClear && (
           <div style={banner("#2d5a3a")}>
-            🎉 血狼劫掠團已被徹底剿滅!戰役完成 — 你仍可重打任一關磨練部隊。
+            🎉 碎顱氏族已被徹底剿滅!戰役完成 — 你仍可重打任一關磨練部隊。
           </div>
         )}
         {fieldable === 0 && (

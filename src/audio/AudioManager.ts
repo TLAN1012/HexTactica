@@ -1,75 +1,48 @@
 /**
- * 音效介面 — v1 為 no-op 實作。
- * 未來接入真實 Web Audio 時，只需改 createAudio() 的回傳實例，
- * 其餘程式碼不需動。
+ * AudioManager — WebAudio 實作(原創程序化配樂,見 music.ts)。
+ *
+ * 使用方式:
+ *   audio.unlock()            // 任何使用者手勢中呼叫(建立 AudioContext)
+ *   audio.playBgm("camp")     // "camp" | "battle"
+ *   audio.playSfx("melee")    // melee/ranged/retaliate/death/victory/defeat
+ *   audio.toggleMute()
  */
+import { MusicEngine } from "./music";
 
-export interface AudioManager {
-  loadTrack(id: string, url: string): Promise<void>;
-  playBgm(id: string, loop?: boolean): void;
-  stopBgm(fadeMs?: number): void;
-  playSfx(id: string): void;
-  setMasterVolume(v: number): void; // 0.0 - 1.0
-  setBgmVolume(v: number): void;
-  setSfxVolume(v: number): void;
-  isMuted(): boolean;
-  mute(muted: boolean): void;
-}
+export type BgmId = "camp" | "battle";
+export type SfxId = "melee" | "ranged" | "retaliate" | "death" | "victory" | "defeat";
 
-/** 預期會被 UI 呼叫的 SFX id 清單（實作時對照） */
-export const SFX_EVENTS = {
-  CHARGE: "charge",
-  CLASH: "clash",
-  ROUT: "rout",
-  ARROWS: "arrows",
-  JAVELIN: "javelin",
-  HORN: "horn",
-  MARCH: "march",
-  DIE_ROLL: "die-roll",
-} as const;
+class AudioManager {
+  private engine = new MusicEngine();
 
-export const BGM_TRACKS = {
-  MENU: "menu",
-  BATTLE_ANCIENT: "battle-ancient",
-  BATTLE_MEDIEVAL: "battle-medieval",
-  VICTORY: "victory",
-  DEFEAT: "defeat",
-} as const;
+  /** 在使用者手勢中呼叫;重複呼叫無害 */
+  unlock(): void {
+    const wasReady = this.engine.isReady();
+    this.engine.ensureContext();
+    if (!wasReady) this.engine.resumeBgm();
+  }
 
-class NoopAudioManager implements AudioManager {
-  private muted = false;
-  async loadTrack(_id: string, _url: string): Promise<void> {
-    /* no-op */
+  playBgm(id: BgmId): void {
+    this.engine.playBgm(id);
   }
-  playBgm(_id: string, _loop?: boolean): void {
-    /* no-op */
+
+  stopBgm(): void {
+    this.engine.stopBgm();
   }
-  stopBgm(_fadeMs?: number): void {
-    /* no-op */
+
+  playSfx(id: SfxId): void {
+    this.engine.playSfx(id);
   }
-  playSfx(_id: string): void {
-    /* no-op */
-  }
-  setMasterVolume(_v: number): void {
-    /* no-op */
-  }
-  setBgmVolume(_v: number): void {
-    /* no-op */
-  }
-  setSfxVolume(_v: number): void {
-    /* no-op */
-  }
+
   isMuted(): boolean {
-    return this.muted;
+    return this.engine.isMuted();
   }
-  mute(muted: boolean): void {
-    this.muted = muted;
+
+  toggleMute(): boolean {
+    const next = !this.engine.isMuted();
+    this.engine.setMuted(next);
+    return next;
   }
 }
 
-export function createAudio(): AudioManager {
-  return new NoopAudioManager();
-}
-
-/** 全域單例，方便 UI 直接 import 使用 */
-export const audio: AudioManager = createAudio();
+export const audio = new AudioManager();

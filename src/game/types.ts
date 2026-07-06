@@ -47,6 +47,8 @@ export interface SquadType {
   /** 補一名士兵的價格(金) */
   soldierCost: number;
   desc: string;
+  /** false = 敵方專屬兵種,軍營不可招募 */
+  recruitable?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════

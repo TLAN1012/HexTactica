@@ -6,7 +6,8 @@
  *  - 懸停敵人:傷害預覽(預計殺傷 / 反擊損失)
  *  - 敵方回合由 AI 逐步自動執行
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { audio, type SfxId } from "../audio/AudioManager";
 import {
   hexCorners,
   hexDistance,
@@ -66,6 +67,22 @@ export function BattleScreen({ battle, onBattleChange, onFinish, missionTitle }:
     : undefined;
 
   const isPlayerTurn = battle.activeSide === "player" && battle.outcome === "ongoing";
+
+  // ── 音效:對每筆新增的戰鬥紀錄播放對應音效 ─────────
+  const seenLogCount = useRef(battle.log.length);
+  useEffect(() => {
+    const fresh = battle.log.slice(seenLogCount.current);
+    seenLogCount.current = battle.log.length;
+    for (const e of fresh) {
+      let sfx: SfxId | null = null;
+      if (e.kind === "attack") sfx = e.text.includes("射擊") ? "ranged" : "melee";
+      else if (e.kind === "retaliate") sfx = "retaliate";
+      else if (e.kind === "death") sfx = "death";
+      else if (e.kind === "info" && e.text.includes("勝利")) sfx = "victory";
+      else if (e.kind === "info" && e.text.includes("敗北")) sfx = "defeat";
+      if (sfx) audio.playSfx(sfx);
+    }
+  }, [battle.log]);
 
   // ── AI 回合:逐步執行(每次 battle 變動重排下一步) ──
   useEffect(() => {
