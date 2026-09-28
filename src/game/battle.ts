@@ -627,6 +627,17 @@ function endTurn(state: BattleState): BattleState {
     })),
   };
   next = arriveReinforcements(next, nextSide);
+  // 固守隊到了指定回合轉為進攻(例如斯坦福橋:奧里援軍一到,挪威軍全線反攻)
+  if (next.squads.some((s) => s.side === nextSide && s.stance === "hold" && s.activateTurn !== undefined && s.activateTurn <= next.turn)) {
+    next = {
+      ...next,
+      squads: next.squads.map((s) =>
+        s.side === nextSide && s.stance === "hold" && s.activateTurn !== undefined && s.activateTurn <= next.turn
+          ? { ...s, stance: "attack" as const }
+          : s,
+      ),
+    };
+  }
   next = pushLog(next, {
     kind: "info",
     text: nextSide === "player" ? `第 ${nextTurn} 回合 — 我方行動` : "敵方行動……",

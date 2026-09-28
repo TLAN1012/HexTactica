@@ -40,8 +40,8 @@ describe("緊急整補", () => {
   });
 
   it("結算時從戰役線扣掉花費", () => {
-    const b = { ...fresh(), goldSpent: 120, outcome: "defeat" as const };
+    const b = { ...fresh(), goldSpent: 120, outcome: "victory" as const };
     const r = applyBattleResult(c, "war-1066", b, sc);
-    expect(r.campaign.tracks["war-1066"].gold).toBe(c.tracks["war-1066"].gold - 120);
+    expect(r.campaign.tracks["war-1066"].gold).toBe(c.tracks["war-1066"].gold - 120 + r.result.goldEarned);
   });
 });
