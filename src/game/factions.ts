@@ -113,7 +113,7 @@ export const COMMANDERS: CommanderDef[] = [
     bio: "雙目失明,仍讓騎士把馬韁綁在一起,帶他衝進戰場——「好讓我能揮出一劍」。" },
   { id: "john2", name: "約翰二世", title: "法蘭西國王「好人」", faction: "french", portrait: "john2.webp", facing: "right",
     bio: "腓力六世之子。普瓦捷一戰,他徒步手持戰斧死戰,最終被俘。" },
-  { id: "dalbret", name: "夏爾・達爾布雷", title: "法蘭西王室統帥", faction: "french", portrait: "dalbret.webp", facing: "right",
+  { id: "dalbret", name: "夏爾・達爾布雷", title: "法蘭西王室統帥", faction: "french", portrait: "dalbret.webp", facing: "left",
     bio: "阿金庫爾的法軍統帥。數倍兵力、全歐最好的甲冑——卻陷在一片爛泥田裡。" },
   { id: "joan", name: "貞德", title: "奧爾良的少女", faction: "french", portrait: "joan.webp", facing: "right",
     bio: "十七歲的農家少女,說自己聽見了天使的聲音。她舉著白旗走到軍隊最前面,奧爾良之圍九天就解除了。" },
