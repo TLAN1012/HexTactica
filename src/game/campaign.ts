@@ -24,6 +24,12 @@ import type {
 export const SAVE_KEY = "hextactica-save-v2";
 export const LEGACY_SAVE_KEY = "hextactica-campaign-v1";
 export const MAX_ROSTER = 6;
+/** 歷史戰爭的名冊上限(劇本佈署格有 8 格) */
+export const MAX_ROSTER_WAR = 8;
+
+export function maxRoster(trackId: string): number {
+  return trackId === FANTASY_TRACK ? MAX_ROSTER : MAX_ROSTER_WAR;
+}
 export const REPLAY_REWARD_RATE = 0.4;
 
 export { MISSIONS };
@@ -157,9 +163,9 @@ export function isUnlocked(track: CampaignTrack, mission: MissionDef): boolean {
 // 經濟:招募 / 補兵 / 解散
 // ═══════════════════════════════════════════════════════════
 
-export function recruitSquad(t: CampaignTrack, typeId: string): CampaignTrack {
+export function recruitSquad(t: CampaignTrack, typeId: string, limit = MAX_ROSTER): CampaignTrack {
   const type = getSquadType(typeId);
-  if (t.gold < type.cost || t.roster.length >= MAX_ROSTER) return t;
+  if (t.gold < type.cost || t.roster.length >= limit) return t;
   return {
     ...t,
     gold: t.gold - type.cost,
