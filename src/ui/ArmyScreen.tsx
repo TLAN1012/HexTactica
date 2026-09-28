@@ -1,7 +1,7 @@
 /**
  * 軍營:名冊(補兵、解散)與招募。每條戰役線各自的陣營兵種。
  */
-import { MAX_ROSTER, recruitableTypes, recruitSquad, replenishCost, replenishSquad, dismissSquad, trackFaction } from "../game/campaign";
+import { maxRoster, recruitableTypes, recruitSquad, replenishCost, replenishSquad, dismissSquad, trackFaction } from "../game/campaign";
 import { getCommander } from "../game/factions";
 import { maxSoldiers, XP_THRESHOLDS, MAX_LEVEL } from "../game/progression";
 import { getSquadType } from "../game/units";
@@ -16,6 +16,8 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
   onBack: () => void;
 }) {
   const types = recruitableTypes(trackFaction(trackId));
+  const limit = maxRoster(trackId);
+  const full = track.roster.length >= limit;
   return (
     <div className="screen">
       <div className="content">
@@ -26,7 +28,7 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
         </div>
 
         <div className="frame">
-          <div className="frame-title">名冊 {track.roster.length} / {MAX_ROSTER}</div>
+          <div className="frame-title">名冊 {track.roster.length} / {limit}</div>
           <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {track.roster.map((r) => {
               const t = getSquadType(r.typeId);
@@ -63,6 +65,7 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
 
         <div className="frame" style={{ marginTop: 18 }}>
           <div className="frame-title">招募</div>
+          {full && <p className="sub" style={{ marginTop: 0 }}>名冊已滿({limit} 隊)。要招新兵,先解散一隊。</p>}
           <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
             {types.map((t) => (
               <div key={t.id} className="frame" style={{ padding: 12 }}>
@@ -75,8 +78,8 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
                     {t.traits.filter((x) => x !== "levy").map((tr) => <div key={tr} style={{ fontSize: 12, color: "var(--gold-2)" }}>{TRAIT_INFO[tr]}</div>)}
                   </div>
                 </div>
-                <button className="btn btn-sm btn-block" style={{ marginTop: 10 }} disabled={track.gold < t.cost || track.roster.length >= MAX_ROSTER} onClick={() => onChange(recruitSquad(track, t.id))}>
-                  招募 {t.cost} 金
+                <button className="btn btn-sm btn-block" style={{ marginTop: 10 }} disabled={track.gold < t.cost || full} onClick={() => onChange(recruitSquad(track, t.id, limit))}>
+                  {full ? "名冊已滿" : track.gold < t.cost ? `招募 ${t.cost} 金(還差 ${t.cost - track.gold})` : `招募 ${t.cost} 金`}
                 </button>
               </div>
             ))}
