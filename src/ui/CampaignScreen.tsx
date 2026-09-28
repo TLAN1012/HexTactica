@@ -1,191 +1,62 @@
 /**
- * CampaignScreen — 戰役地圖:任務清單、金幣、進軍/回營
+ * 奇幻外傳:十關獸人戰役的關卡選單。
  */
 import { useState } from "react";
-import { isUnlocked, MISSIONS, REPLAY_REWARD_RATE } from "../game/campaign";
-import type { BattleResult } from "../game/campaign";
-import { getSquadType } from "../game/units";
-import type { CampaignState, MissionDef } from "../game/types";
+import { isUnlocked, REPLAY_REWARD_RATE, type BattleResult } from "../game/campaign";
+import { MISSIONS } from "../game/missions";
+import type { CampaignTrack, MissionDef } from "../game/types";
 
-export interface CampaignScreenProps {
-  campaign: CampaignState;
+export function CampaignScreen({ track, lastResult, onStartMission, onOpenArmy, onBack }: {
+  track: CampaignTrack;
   lastResult: BattleResult | null;
-  onStartMission: (mission: MissionDef) => void;
+  onStartMission: (m: MissionDef) => void;
   onOpenArmy: () => void;
-  onTutorial: () => void;
-  onBackToTitle: () => void;
-}
-
-export function CampaignScreen({
-  campaign,
-  lastResult,
-  onStartMission,
-  onOpenArmy,
-  onTutorial,
-  onBackToTitle,
-}: CampaignScreenProps) {
-  const [selected, setSelected] = useState<MissionDef | null>(null);
-  const fieldable = campaign.roster.filter((r) => r.soldiers > 0).length;
-  const allClear = campaign.completedMissions.length === MISSIONS.length;
-
+  onBack: () => void;
+}) {
+  const [sel, setSel] = useState<MissionDef | null>(null);
+  const fieldable = track.roster.filter((r) => r.soldiers > 0).length;
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        fontFamily: "system-ui, sans-serif",
-        background: "linear-gradient(#241e16, #1a1510)",
-        color: "#f0e8d4",
-        padding: "24px 16px 48px",
-      }}
-    >
-      <div style={{ maxWidth: 860, margin: "0 auto" }}>
-        {/* 頂欄 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-          <h1 style={{ margin: 0, fontSize: 26 }}>⚔️ 戰役地圖</h1>
-          <div style={{ flex: 1 }} />
-          <span style={{ fontSize: 17, color: "#ffd700", fontWeight: 700 }}>
-            🪙 {campaign.gold}
-          </span>
-          <button onClick={onOpenArmy} style={smallBtn("#5a4a8a")}>
-            🏕 軍營({campaign.roster.length} 隊)
-          </button>
-          <button onClick={onTutorial} style={smallBtn("#3a5a7a")}>
-            📖 教學
-          </button>
-          <button onClick={onBackToTitle} style={smallBtn("#4a4038")}>
-            返回標題
-          </button>
+    <div className="screen">
+      <div className="content">
+        <div className="row" style={{ marginBottom: 14 }}>
+          <button className="btn btn-sm btn-ghost" onClick={onBack}>‹ 選單</button>
+          <h1 className="h1 grow">奇幻外傳:碎顱之戰</h1>
+          <span className="gold">🪙 {track.gold}</span>
+          <button className="btn btn-sm" onClick={onOpenArmy}>🏕 軍營</button>
         </div>
-
-        {/* 戰報 */}
-        {lastResult && <ResultBanner result={lastResult} campaign={campaign} />}
-        {allClear && (
-          <div style={banner("#2d5a3a")}>
-            🎉 碎顱氏族已被徹底剿滅!戰役完成 — 你仍可重打任一關磨練部隊。
+        {lastResult && (
+          <div className="frame fade-in" style={{ marginBottom: 14 }}>
+            <strong style={{ color: lastResult.victory ? "var(--gold-2)" : "var(--bad)" }}>{lastResult.victory ? "⚜ 勝利" : "✝ 敗北"}</strong>
+            {lastResult.goldEarned > 0 && <span className="gold" style={{ marginLeft: 10 }}>+{lastResult.goldEarned} 金</span>}
+            {lastResult.casualties.length > 0 && <span className="sub" style={{ marginLeft: 10 }}>戰損 {lastResult.casualties.reduce((a, c) => a + c.lost, 0)} 人</span>}
           </div>
         )}
-        {fieldable === 0 && (
-          <div style={banner("#7a2d2d")}>
-            ⚠ 你沒有可出戰的部隊了!去軍營招募或補兵。
-          </div>
-        )}
-
-        {/* 任務列表 */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
           {MISSIONS.map((m) => {
-            const unlocked = isUnlocked(campaign, m);
-            const cleared = campaign.completedMissions.includes(m.id);
-            const isSel = selected?.id === m.id;
+            const open = isUnlocked(track, m);
+            const done = track.completedMissions.includes(m.id);
             return (
-              <div
-                key={m.id}
-                onClick={() => unlocked && setSelected(isSel ? null : m)}
-                style={{
-                  background: isSel
-                    ? "rgba(90,74,42,0.55)"
-                    : unlocked
-                      ? "rgba(58,48,36,0.55)"
-                      : "rgba(40,34,28,0.4)",
-                  border: `1px solid ${isSel ? "#c9a85a" : "#4a4034"}`,
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  cursor: unlocked ? "pointer" : "default",
-                  opacity: unlocked ? 1 : 0.45,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}>
-                    {cleared ? "✅" : unlocked ? "⚔️" : "🔒"} 第 {m.index} 關 — {m.title}
-                  </span>
-                  <div style={{ flex: 1 }} />
-                  <span style={{ fontSize: 13, color: "#ffd700" }}>
-                    🪙 {cleared ? Math.round(m.reward * REPLAY_REWARD_RATE) : m.reward}
-                    {cleared && <span style={{ color: "#9a8d70" }}>(重打)</span>}
-                  </span>
-                  <span style={{ fontSize: 13, color: "#c98a7a" }}>
-                    敵軍 {m.enemies.length} 隊
-                  </span>
-                </div>
-                {isSel && (
-                  <div style={{ marginTop: 10, fontSize: 13.5, lineHeight: 1.7 }}>
-                    <p style={{ margin: "0 0 8px", color: "#d4c5a0" }}>{m.briefing}</p>
-                    <div style={{ color: "#c98a7a", marginBottom: 10 }}>
-                      敵方編成:
-                      {m.enemies.map((e, i) => (
-                        <span key={i} style={{ marginLeft: 8 }}>
-                          {getSquadType(e.typeId).name}
-                          {e.level > 1 && ` Lv${e.level}`}
-                        </span>
-                      ))}
-                    </div>
-                    <button
-                      onClick={(ev) => {
-                        ev.stopPropagation();
-                        onStartMission(m);
-                      }}
-                      disabled={fieldable === 0}
-                      style={{
-                        ...smallBtn(fieldable > 0 ? "#ac4a2a" : "#555"),
-                        fontSize: 14,
-                        padding: "9px 26px",
-                      }}
-                    >
-                      🏹 進軍
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button key={m.id} className={`btn ${sel?.id === m.id ? "btn-primary" : ""}`} disabled={!open} style={{ justifyContent: "flex-start", minHeight: 64 }} onClick={() => setSel(m)}>
+                <span style={{ fontFamily: "var(--font-ui)", color: "var(--gold)" }}>{String(m.index).padStart(2, "0")}</span>
+                <span className="grow" style={{ textAlign: "left" }}>{m.title}</span>
+                {done ? "✓" : open ? "⚔" : "🔒"}
+              </button>
             );
           })}
         </div>
+        {sel && (
+          <div className="frame fade-in" style={{ marginTop: 16 }} key={sel.id}>
+            <div className="h1" style={{ fontSize: 20 }}>{sel.title}</div>
+            <p style={{ lineHeight: 1.8 }}>{sel.briefing}</p>
+            <div className="row">
+              <span className="sub grow">
+                獎金 {track.completedMissions.includes(sel.id) ? Math.round(sel.reward * REPLAY_REWARD_RATE) : sel.reward} 金・敵軍 {sel.enemies.length} 隊・出戰 {fieldable} 隊
+              </span>
+              <button className="btn btn-primary" disabled={fieldable === 0} onClick={() => onStartMission(sel)}>出征 ⚔</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
-}
-
-function ResultBanner({ result, campaign }: { result: BattleResult; campaign: CampaignState }) {
-  const name = (id: string) => {
-    const r = campaign.roster.find((r) => r.id === id);
-    return r ? getSquadType(r.typeId).name : "陣亡小隊";
-  };
-  return (
-    <div style={banner(result.victory ? "#2d5a3a" : "#6a3226")}>
-      <strong>{result.victory ? "🏆 上一戰:勝利" : "💀 上一戰:敗北"}</strong>
-      {result.goldEarned > 0 && <span style={{ marginLeft: 10 }}>獲得 🪙 {result.goldEarned}</span>}
-      {result.casualties.length > 0 && (
-        <span style={{ marginLeft: 10, color: "#f0c0a0" }}>
-          戰損:{result.casualties.map((c) => `${name(c.squadId)} −${c.lost} 人`).join("、")}
-        </span>
-      )}
-      {result.xpGains.filter((x) => x.leveledUp).length > 0 && (
-        <span style={{ marginLeft: 10, color: "#ffd700" }}>
-          升級:{result.xpGains.filter((x) => x.leveledUp).map((x) => name(x.squadId)).join("、")}!
-        </span>
-      )}
-    </div>
-  );
-}
-
-function banner(bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    borderRadius: 10,
-    padding: "10px 16px",
-    marginBottom: 14,
-    fontSize: 13.5,
-    lineHeight: 1.7,
-  };
-}
-
-function smallBtn(bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    color: "#fff",
-    border: "none",
-    padding: "7px 14px",
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-  };
 }

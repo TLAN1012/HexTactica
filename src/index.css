@@ -1,30 +1,146 @@
+/*
+ * HexTactica 哥德風主題:黑底、酒紅、古金、象牙白。
+ * 字型:標題 Cinzel Decorative,中文思源宋體(Noto Serif TC)。
+ */
 :root {
-  font-family: system-ui, -apple-system, "PingFang TC",
-    "Microsoft JhengHei", "Noto Sans TC", sans-serif;
-  color-scheme: light dark;
-  color: #222;
-  background-color: #faf7f0;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  --ink: #0d0a0c;
+  --ink-2: #16101a;
+  --panel: rgba(22, 14, 20, 0.92);
+  --panel-2: rgba(36, 20, 28, 0.94);
+  --wine: #7a1626;
+  --wine-2: #a8233a;
+  --gold: #c9a24a;
+  --gold-2: #f0d58a;
+  --ivory: #efe6d6;
+  --muted: #a8988a;
+  --good: #6fbf7a;
+  --bad: #e06464;
+  --line: rgba(201, 162, 74, 0.45);
+  --font: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+  --font-title: "Cinzel Decorative", "Cinzel", "Noto Serif TC", serif;
+  --font-ui: "Cinzel", "Noto Serif TC", serif;
+  font-family: var(--font);
+  color: var(--ivory);
+  background: var(--ink);
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-body {
-  margin: 0;
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--ink); }
+body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+#root { min-height: 100vh; }
+button { font-family: inherit; }
+img { -webkit-user-drag: none; user-select: none; }
+
+/* ── 版面 ─────────────────────────────── */
+.screen {
   min-height: 100vh;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(122, 22, 38, 0.35), transparent 60%),
+    radial-gradient(ellipse at 50% 120%, rgba(201, 162, 74, 0.12), transparent 55%),
+    var(--ink);
 }
+.screen-bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center; filter: saturate(0.9); }
+.screen-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(rgba(13,10,12,0.55), rgba(13,10,12,0.88) 70%, var(--ink)); }
+.screen > .content { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
 
-#root {
-  min-height: 100vh;
+.title-display { font-family: var(--font-title); letter-spacing: 0.04em; color: var(--gold-2); text-shadow: 0 2px 18px rgba(201,162,74,0.35), 0 1px 0 #000; }
+.h1 { font-family: var(--font-ui); font-size: clamp(19px, 4.6vw, 30px); line-height: 1.25; color: var(--gold-2); margin: 0; letter-spacing: 0.05em; }
+.sub { color: var(--muted); font-size: 14px; }
+
+/* ── 華麗框 ───────────────────────────── */
+.frame {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.6), inset 0 0 30px rgba(122, 22, 38, 0.18), 0 10px 30px rgba(0,0,0,0.5);
 }
-
-* {
-  box-sizing: border-box;
+.frame::before, .frame::after {
+  content: "❖";
+  position: absolute;
+  color: var(--gold);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
 }
+.frame::before { top: -7px; left: 50%; transform: translateX(-50%); background: var(--ink); padding: 0 6px; }
+.frame::after { bottom: -7px; left: 50%; transform: translateX(-50%); background: var(--ink); padding: 0 6px; }
+.frame-title { font-family: var(--font-ui); color: var(--gold-2); font-size: 15px; letter-spacing: 0.08em; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.frame-title::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #ddd;
-    background-color: #1a1814;
-  }
+/* ── 按鈕 ─────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 18px;
+  font-size: 15px; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--ivory);
+  background: linear-gradient(180deg, #2a1a22, #1a1016);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .05s;
+}
+.btn:hover:not(:disabled) { border-color: var(--gold); box-shadow: 0 0 12px rgba(201,162,74,0.35); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(180deg, var(--wine-2), var(--wine)); border-color: var(--gold); color: #fff6e0; box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 4px 16px rgba(122,22,38,0.45); }
+.btn-gold { background: linear-gradient(180deg, #d9b45c, #a07a2c); color: #1a1016; border-color: #f0d58a; }
+.btn-ghost { background: transparent; }
+.btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; }
+.btn-lg { min-height: 54px; padding: 14px 28px; font-size: 18px; }
+.btn-block { width: 100%; }
+
+/* ── 小元件 ───────────────────────────── */
+.gold { color: var(--gold-2); font-weight: 700; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--muted); background: rgba(0,0,0,0.3); }
+.stars { color: var(--gold-2); letter-spacing: 1px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.grow { flex: 1; }
+.grid { display: grid; gap: 14px; }
+.portrait { border: 1px solid var(--gold); border-radius: 4px; object-fit: cover; box-shadow: 0 0 0 2px rgba(0,0,0,0.6), 0 4px 18px rgba(0,0,0,0.6); background: #120c10; }
+.token { border-radius: 50%; border: 2px solid var(--gold); object-fit: cover; background: #120c10; }
+.bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--wine-2), var(--gold)); }
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); margin: 14px 0; }
+.fade-in { animation: fadein .35s ease; }
+@keyframes fadein { from { opacity: 0; transform: translateY(6px); } }
+
+/* ── 對話框(劇情) ─────────────────────── */
+.story { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; user-select: none; }
+.story-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.story-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(13,10,12,0.92) 78%); }
+.story-portrait { position: absolute; bottom: 150px; left: max(12px, calc(50% - 470px)); height: min(62vh, 560px); z-index: 1; filter: drop-shadow(0 0 24px rgba(0,0,0,0.8)); mask-image: linear-gradient(#000 80%, transparent); -webkit-mask-image: linear-gradient(#000 80%, transparent); }
+.story-box { position: relative; z-index: 2; margin: 0 auto max(16px, env(safe-area-inset-bottom)); width: min(940px, calc(100% - 24px)); min-height: 150px; padding: 18px 22px 16px; }
+.story-name { font-family: var(--font-ui); color: var(--gold-2); font-size: 18px; margin-bottom: 2px; }
+.story-name small { font-family: var(--font); color: var(--muted); font-size: 13px; margin-left: 8px; }
+.story-text { font-size: clamp(16px, 2.4vw, 19px); line-height: 1.8; }
+.story-hint { position: absolute; right: 16px; bottom: 10px; color: var(--gold); font-size: 13px; animation: blink 1.4s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+
+/* ── 戰鬥 ─────────────────────────────── */
+.battle { position: fixed; inset: 0; display: flex; flex-direction: column; background: #0a0709; }
+.battle-top { display: flex; align-items: center; gap: 10px; padding: max(8px, env(safe-area-inset-top)) 12px 8px; background: linear-gradient(#1a1016, rgba(26,16,22,0.85)); border-bottom: 1px solid var(--line); z-index: 5; }
+.battle-map { position: relative; flex: 1; overflow: hidden; touch-action: none; cursor: grab; }
+.battle-map.dragging { cursor: grabbing; }
+.battle-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.battle-bottom { display: flex; align-items: center; gap: 10px; padding: 8px 12px max(8px, env(safe-area-inset-bottom)); background: linear-gradient(rgba(26,16,22,0.85), #1a1016); border-top: 1px solid var(--line); z-index: 5; }
+.zoom-ctl { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 4; }
+.zoom-ctl .btn { width: 40px; min-height: 40px; padding: 0; font-size: 18px; }
+.preview { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; padding: 10px 14px; max-width: min(560px, calc(100% - 70px)); font-size: 14px; }
+.unit-card { position: absolute; left: 10px; bottom: 10px; z-index: 4; display: flex; gap: 10px; align-items: center; padding: 10px 12px; max-width: min(430px, calc(100% - 20px)); }
+.banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 8; text-align: center; pointer-events: none; animation: banner 2.4s ease forwards; }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.95); } 15%, 75% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; } }
+.log { position: absolute; right: 10px; bottom: 10px; z-index: 4; width: min(360px, calc(100% - 20px)); max-height: 34vh; overflow: auto; font-size: 12.5px; line-height: 1.6; padding: 8px 12px; }
+.outcome { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(8,5,7,0.72); }
+
+@media (max-width: 640px) {
+  .story-portrait { left: 50%; transform: translateX(-50%); height: 46vh; bottom: 170px; opacity: 0.95; }
+  .unit-card { right: 10px; }
+  .log { display: none; }
+  .log.open { display: block; bottom: 90px; }
 }

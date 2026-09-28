@@ -48,7 +48,7 @@ const backToPlayer = (b: BattleState) =>
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     title: "1|移動",
-    text: "點一下藍框的劍盾兵。黃色格子是它走得到的地方 — 點一個黃格,讓它往獸人走。",
+    text: "點一下我方(藍框)的劍盾兵。黃色格子是它走得到的地方 — 點一個黃格,讓它往獸人走。",
     done: playerMoved,
   },
   {
