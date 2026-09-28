@@ -14,7 +14,7 @@
  */
 import type { ScenarioDef, WarDef } from "../types";
 
-const NO_ARMOR = { label: "盔甲留在船上 −20%", defense: -0.2 };
+const NO_ARMOR = { label: "盔甲留在船上 −25%", defense: -0.25 };
 const WINDED = { label: "急行軍力竭", damageMul: 0.85, untilTurn: 9 };
 
 export const FULFORD: ScenarioDef = {
@@ -94,7 +94,7 @@ export const STAMFORD: ScenarioDef = {
   art: "stamford.webp",
   briefing:
     "哈羅德四天急行軍三百公里,在斯坦福橋撞上正在等待人質交換的挪威軍。天氣炎熱,維京人把鎖甲留在里卡爾的船上——他們沒想到英格蘭國王會來。唯一的橋上,一個巨漢狂戰士擋住了整支軍隊。奧里正帶著全副武裝的留守部隊從船隊狂奔而來。",
-  objectiveText: "擊殺挪威王哈拉爾・哈德拉達。哈羅德不能陣亡,16 回合內要分出勝負。第 7 回合奧里援軍從東邊抵達。",
+  objectiveText: "擊殺挪威王哈拉爾・哈德拉達。哈羅德不能陣亡。第 7 回合奧里援軍從東邊抵達,挪威軍將全線反攻——在那之前能削弱多少,就是勝負關鍵。",
   playerFaction: "saxon",
   enemyFaction: "norse",
   mapRows: [
@@ -115,13 +115,13 @@ export const STAMFORD: ScenarioDef = {
   ],
   playerDeploy: [[3, 7], [3, 5], [3, 9], [2, 6], [2, 8], [2, 4], [2, 10], [1, 7]],
   enemies: [
-    { typeId: "norse-hirdman", level: 3, at: [15, 7], commanderId: "hardrada", stance: "hold", modifiers: [NO_ARMOR] },
-    { typeId: "norse-raider", level: 2, at: [15, 5], commanderId: "tostig", stance: "hold", modifiers: [NO_ARMOR] },
-    { typeId: "norse-berserker", level: 3, at: [11, 7], stance: "hold" },
+    { typeId: "norse-hirdman", level: 3, at: [15, 7], commanderId: "hardrada", stance: "hold", activateTurn: 7, modifiers: [NO_ARMOR] },
+    { typeId: "norse-raider", level: 2, at: [15, 5], commanderId: "tostig", stance: "hold", activateTurn: 7, modifiers: [NO_ARMOR] },
+    { typeId: "norse-berserker", level: 2, at: [11, 7], stance: "hold", activateTurn: 7 },
     { typeId: "norse-raider", level: 1, at: [8, 6], modifiers: [NO_ARMOR] },
-    { typeId: "norse-hirdman", level: 2, at: [13, 7], stance: "hold", modifiers: [NO_ARMOR] },
-    { typeId: "norse-raider", level: 1, at: [14, 4], stance: "hold", modifiers: [NO_ARMOR] },
-    { typeId: "norse-raider", level: 1, at: [14, 10], stance: "hold", modifiers: [NO_ARMOR] },
+    { typeId: "norse-hirdman", level: 2, at: [13, 7], stance: "hold", activateTurn: 7, modifiers: [NO_ARMOR] },
+    { typeId: "norse-raider", level: 1, at: [14, 4], stance: "hold", activateTurn: 7, modifiers: [NO_ARMOR] },
+    { typeId: "norse-raider", level: 1, at: [14, 10], stance: "hold", activateTurn: 7, modifiers: [NO_ARMOR] },
     { typeId: "norse-archer", level: 2, at: [17, 6], modifiers: [NO_ARMOR] },
     { typeId: "norse-archer", level: 1, at: [17, 8], modifiers: [NO_ARMOR] },
   ],
@@ -129,16 +129,16 @@ export const STAMFORD: ScenarioDef = {
     {
       turn: 7,
       side: "enemy",
-      message: "號角從東方響起——埃斯坦・奧里帶著全副武裝的留守部隊殺到!(急行軍力竭,戰力 −15% 到第 9 回合)",
+      message: "號角從東方響起——埃斯坦・奧里帶著全副武裝的留守部隊殺到!(急行軍力竭,戰力 −15% 到第 9 回合)。挪威王下令全軍出擊!",
       squads: [
-        { typeId: "norse-hirdman", level: 3, at: [21, 7], commanderId: "orri", modifiers: [WINDED] },
+        { typeId: "norse-hirdman", level: 2, at: [21, 7], commanderId: "orri", modifiers: [WINDED] },
         { typeId: "norse-hirdman", level: 2, at: [21, 6], modifiers: [WINDED] },
         { typeId: "norse-raider", level: 2, at: [21, 8], modifiers: [WINDED] },
       ],
     },
   ],
   victory: [{ kind: "killCommander", commanderId: "hardrada" }, { kind: "annihilate" }],
-  defeat: [{ kind: "commanderLost", commanderId: "harold" }, { kind: "annihilated" }, { kind: "timeout", turn: 16 }],
+  defeat: [{ kind: "commanderLost", commanderId: "harold" }, { kind: "annihilated" }],
   reward: 600,
   intro: [
     { speaker: "harold", text: "他們在河對岸曬太陽,盔甲全留在船上。這是上天給的機會——不能讓奧里趕到。" },

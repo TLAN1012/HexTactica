@@ -255,6 +255,8 @@ export interface BattleResult {
   advanced?: boolean;
   /** 戰爭:整場戰爭結束 */
   warFinished?: boolean;
+  /** 戰爭:打輸撤退重整,部隊與金幣恢復開戰前 */
+  regrouped?: boolean;
 }
 
 /** 把戰場結果寫回戰役線(戰損保留、經驗結算、發獎金、推進戰爭) */
@@ -298,6 +300,19 @@ export function applyBattleResult(
   };
 
   const result: BattleResult = { victory, reason: battle.outcomeReason, goldEarned, xpGains, casualties };
+
+  // 歷史戰爭必須打贏才能推進;打輸若還要扣兵扣錢,會越打越弱、無法翻盤。
+  // 所以戰爭中的敗北(且劇情不會繼續)= 撤退重整:名冊與金幣回到開戰前,可原樣再挑戰。
+  if (!victory && trackId !== FANTASY_TRACK) {
+    const war = getWar(trackId);
+    const def = war.battles[track.stage ?? 0];
+    if (!(def && def.scenarioId === scenario.id && def.advanceOnDefeat)) {
+      return {
+        campaign: c,
+        result: { victory, reason: battle.outcomeReason, goldEarned: 0, xpGains: [], casualties: [], regrouped: true },
+      };
+    }
+  }
 
   // 戰爭推進
   if (trackId !== FANTASY_TRACK) {

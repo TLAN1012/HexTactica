@@ -45,7 +45,7 @@ export function WarScreen({ war, track, lastResult, onStart, onArmy, onBack, onE
             </div>
             {lastResult.xpGains.some((x) => x.leveledUp) && <div className="sub" style={{ marginTop: 4 }}>有部隊升級了!到軍營看看。</div>}
             {lastResult.casualties.length > 0 && <div className="sub" style={{ marginTop: 2 }}>戰損 {lastResult.casualties.reduce((a, c) => a + c.lost, 0)} 人,記得回軍營補兵。</div>}
-            {!lastResult.victory && !lastResult.advanced && <div className="sub" style={{ marginTop: 2 }}>這一戰必須獲勝才能繼續——調整部署再試一次。</div>}
+            {lastResult.regrouped && <div className="sub" style={{ marginTop: 2 }}>撤退重整:部隊與金幣都恢復成開戰前的狀態,調整部署再挑戰一次。</div>}
           </div>
         )}
 

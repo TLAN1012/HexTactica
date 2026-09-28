@@ -125,7 +125,8 @@ export function urgency(state: BattleState, side: SideId): number {
   const deadlines = side === "enemy"
     ? state.victory.flatMap((v) => (v.kind === "survive" || v.kind === "holdUntil" ? [v.turn] : []))
     : state.defeat.flatMap((d) => (d.kind === "timeout" ? [d.turn] : []));
-  if (!deadlines.length) return 0;
+  // 沒有期限的戰役:回合拖越久越敢打,避免雙方隔著河對峙到天荒地老
+  if (!deadlines.length) return Math.max(0, Math.min(1, (state.turn - 6) / 8));
   const T = Math.min(...deadlines);
   // 期限過了六成就全力進攻
   return Math.max(0.3, Math.min(1, (state.turn - 1) / (T * 0.6)));
