@@ -12,7 +12,7 @@ function mkState(squads: Squad[], extra: Partial<BattleState> = {}): BattleState
   return {
     scenarioId: "t", missionId: "t", turn: 1, activeSide: "player", terrain, width: 10, height: 8,
     squads, log: [], outcome: "ongoing", kills: {}, difficulty: "knight", enemyStatMul: 1,
-    victory: [], defeat: [], pendingReinforcements: [], objectiveHexes: [], ...extra,
+    victory: [], defeat: [], pendingReinforcements: [], objectiveHexes: [], gold: 0, goldSpent: 0, reinforced: [], ...extra,
   };
 }
 function sq(id: string, typeId: string, side: "player" | "enemy", cell: [number, number], extra: Partial<Squad> = {}): Squad {

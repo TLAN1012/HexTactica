@@ -108,7 +108,7 @@ export default function App() {
       setScenario(prepared);
       setTrackId(tId);
       const begin = () => {
-        setBattle(initBattle(prepared, getTrack(campaign, tId).roster, campaign.difficulty));
+        setBattle(initBattle(prepared, getTrack(campaign, tId).roster, campaign.difficulty, getTrack(campaign, tId).gold));
         setScreen("battle");
       };
       playStory({ pages: prepared.intro ?? [], background: prepared.art, title: prepared.title, then: begin });
