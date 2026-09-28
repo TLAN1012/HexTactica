@@ -9,3 +9,12 @@ export const unitArt = (typeId: string) => BASE + "units/" + getSquadType(typeId
 export const terrainArt = (id: string) => BASE + "terrain/" + id + ".webp";
 export const portraitArt = (commanderId: string) => BASE + "portraits/" + getCommander(commanderId).portrait;
 export const storyArt = (file: string) => BASE + "story/" + file;
+
+/** 戰場小人(透明背景)。指揮官用 cmd-<id> */
+export const spriteArt = (id: string) => BASE + "sprites/" + id + ".webp";
+
+/**
+ * 小人圖原本臉朝的方向(畫的時候要求朝右,少數沒照做的在這裡登記)。
+ * 戰場上我方一律朝右(往敵陣)、敵方朝左,需要時水平翻轉。
+ */
+export const SPRITE_FACES_LEFT = new Set<string>(["heavy-cavalry", "norman-knight", "troll-crusher"]);

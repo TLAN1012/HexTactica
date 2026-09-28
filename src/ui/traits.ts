@@ -12,3 +12,16 @@ export const TRAIT_INFO: Record<TraitId, string> = {
   pierce: "穿甲:無視目標一半的護甲",
   levy: "民兵:便宜量多",
 };
+
+/** 特性名稱(敵方資料卡只寫名稱,不寫數字) */
+export const TRAIT_NAME: Record<TraitId, string> = {
+  charge: "衝鋒",
+  firstStrike: "先制",
+  antiCavalry: "克騎",
+  volley: "拋射",
+  skirmisher: "散兵",
+  shieldWall: "盾牆",
+  berserk: "狂暴",
+  pierce: "穿甲",
+  levy: "民兵",
+};

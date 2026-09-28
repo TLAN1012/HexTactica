@@ -161,6 +161,7 @@ export const ORC_TYPES: SquadType[] = [
     ...baseClone("longbow"),
     id: "troll-slinger",
     name: "巨魔投石手",
+    single: true,
     art: "troll-slinger.png",
     desc: "灰皮巨魔把磨盤大的石頭拋過半個戰場,砸到什麼都是一個坑。",
   },

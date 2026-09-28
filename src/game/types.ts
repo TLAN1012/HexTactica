@@ -61,6 +61,8 @@ export interface SquadType {
   desc: string;
   /** false = 不可招募(敵方專屬、劇情專屬) */
   recruitable?: boolean;
+  /** 戰場上只畫一個(火砲、投石車等器械) */
+  single?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -92,6 +94,8 @@ export interface CommanderDef {
   faction: FactionId;
   /** public/art/portraits/<portrait> */
   portrait: string;
+  /** 立繪中人物臉朝的方向;劇情畫面:朝右擺左邊、朝左擺右邊 */
+  facing?: "left" | "right";
   bio: string;
 }
 

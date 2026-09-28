@@ -41,7 +41,7 @@ export function StoryScreen({ pages, background, title, onDone }: StoryScreenPro
     <div className="story" onClick={next}>
       {bg && <div className="story-bg" style={{ backgroundImage: `url(${storyArt(bg)})` }} />}
       {speaker && (
-        <img key={speaker.id} className="story-portrait fade-in" src={portraitArt(speaker.id)} alt={speaker.name} />
+        <img key={speaker.id} className={`story-portrait fade-in ${speaker.facing === "left" ? "at-right" : "at-left"}`} src={portraitArt(speaker.id)} alt={speaker.name} />
       )}
       <button
         className="btn btn-sm btn-ghost"
