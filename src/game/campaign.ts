@@ -7,6 +7,7 @@
  */
 import { getDifficulty } from "./difficulty";
 import { levelForXp, maxHpPool, maxSoldiers, aliveSoldiers } from "./progression";
+import { convertHeir, getRelic, grantRelic, legacyOf } from "./legacy";
 import { MISSIONS } from "./missions";
 import { FANTASY_TRACK, getWar, WARS } from "./scenarios";
 import { getSquadType, recruitableTypes } from "./units";
@@ -289,7 +290,8 @@ export function applyBattleResult(
     const newXp = r.xp + gained;
     const newLevel = levelForXp(newXp);
     if (gained > 0) xpGains.push({ squadId: r.id, xp: gained, leveledUp: newLevel > r.level });
-    return { ...r, soldiers: survivors, xp: newXp, level: newLevel };
+    const honors = victory && !(r.honors ?? []).includes(scenario.title) ? [...(r.honors ?? []), scenario.title] : r.honors;
+    return { ...r, soldiers: survivors, xp: newXp, level: newLevel, honors };
   });
 
   let next: CampaignTrack = {
@@ -329,7 +331,31 @@ export function applyBattleResult(
   }
 
   next = ensureViable(next, trackId);
-  return { campaign: updateTrack(c, trackId, () => next), result };
+  let campaign = updateTrack(c, trackId, () => next);
+  if (result.warFinished && trackId !== FANTASY_TRACK) campaign = grantRelic(campaign, getWar(trackId).relic);
+  return { campaign, result };
 }
 
 export { recruitableTypes };
+
+// ═══════════════════════════════════════════════════════════
+// 傳承:開啟新時代的戰爭時收下前一時代的老兵;遺物加成
+// ═══════════════════════════════════════════════════════════
+
+/** 戰爭還沒開打(第 0 戰)時,把前一場戰爭傳來的老兵加進名冊(名冊滿就停) */
+export function applyHeirs(c: CampaignState, warId: string): CampaignState {
+  const war = getWar(warId);
+  const track = c.tracks[warId];
+  if (!war.prevWar || track.heirsApplied || (track.stage ?? 0) > 0) return c;
+  const heirs = legacyOf(c).heirs.filter((h) => h.fromWar === war.prevWar);
+  if (!heirs.length) return c;
+  const room = Math.max(0, maxRoster(warId) - track.roster.length);
+  const added = heirs.slice(0, room).map((h) => convertHeir(h.squad, war.playerFaction, newSquadId()));
+  return updateTrack(c, warId, (t) => ({ ...t, roster: [...t.roster, ...added], heirsApplied: true }));
+}
+
+/** 這條戰役線裝備的遺物(轉成戰場加成) */
+export function relicMods(track: CampaignTrack) {
+  const r = track.relic ? getRelic(track.relic) : undefined;
+  return r ? [r.modifier] : [];
+}

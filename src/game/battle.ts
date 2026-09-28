@@ -26,6 +26,7 @@ import type {
   ScenarioSquad,
   SideId,
   Squad,
+  SquadModifier,
 } from "./types";
 
 // ═══════════════════════════════════════════════════════════
@@ -93,6 +94,8 @@ export function initBattle(
   roster: RosterSquad[],
   difficultyId: DifficultyId = "knight",
   gold = 0,
+  /** 遺物等全軍加成(套到每支我方部隊) */
+  playerMods: SquadModifier[] = [],
 ): BattleState {
   const map = buildMap(scenario);
   const diff = getDifficulty(difficultyId);
@@ -136,14 +139,22 @@ export function initBattle(
     base.squads.push(spawnFromScenario(e, `enemy-${i}`, "enemy", pos, diff.enemyLevelBonus));
   });
 
+  if (playerMods.length) {
+    base.squads = base.squads.map((s) => (s.side === "player" ? { ...s, modifiers: [...(s.modifiers ?? []), ...playerMods] } : s));
+  }
+
   if (scenario.playerAiStance) {
+    // 勝利要靠主動擊敗敵人(沒有「撐過/守住」)的戰役,模擬玩家守到第 8 回合就轉進攻,避免雙方對峙
+    const defensiveWin = scenario.victory.some((v) => v.kind === "survive" || v.kind === "holdUntil");
     base.squads = base.squads.map((s) =>
-      s.side === "player" ? { ...s, stance: scenario.playerAiStance, anchor: s.anchor ?? s.pos } : s,
+      s.side === "player"
+        ? { ...s, stance: scenario.playerAiStance, anchor: s.anchor ?? s.pos, activateTurn: defensiveWin ? s.activateTurn : 8 }
+        : s,
     );
   }
 
   const objectiveCells: Cell[] = [
-    ...scenario.victory.flatMap((v) => (v.kind === "holdUntil" ? v.hexes : [])),
+    ...scenario.victory.flatMap((v) => (v.kind === "holdUntil" || v.kind === "capture" ? v.hexes : [])),
     ...scenario.defeat.flatMap((d) => (d.kind === "hexesLost" ? d.hexes : [])),
   ];
 
@@ -569,6 +580,11 @@ function checkRoundEnd(state: BattleState, finishedTurn: number): BattleState {
     }
   }
   for (const v of state.victory) {
+    if (v.kind === "capture") {
+      const keys = v.hexes.map((c) => hexKey(cellToHex(c)));
+      const mine = new Set(livingSquads(state, "player").map((s) => hexKey(s.pos)));
+      if (keys.every((k) => mine.has(k))) return finish(state, "victory", "攻下目標陣地");
+    }
     if (v.kind === "survive" && finishedTurn >= v.turn) return finish(state, "victory", `撐過了 ${v.turn} 回合`);
     if (v.kind === "holdUntil" && finishedTurn >= v.turn) {
       const ok = v.requireOccupied

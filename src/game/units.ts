@@ -10,6 +10,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "infantry",
     name: "劍盾兵",
+    role: "heavyInf",
     faction: "fantasy-human",
     art: "infantry.png",
     move: 3,
@@ -27,6 +28,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "spearman",
     name: "長槍兵",
+    role: "lineInf",
     faction: "fantasy-human",
     art: "spearman.png",
     move: 3,
@@ -44,6 +46,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "archer",
     name: "弓兵",
+    role: "archer",
     faction: "fantasy-human",
     art: "archer.png",
     move: 3,
@@ -62,6 +65,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "longbow",
     name: "長弓兵",
+    role: "archer",
     faction: "fantasy-human",
     art: "longbow.png",
     move: 2,
@@ -80,6 +84,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "velite",
     name: "標槍兵",
+    role: "skirmisher",
     faction: "fantasy-human",
     art: "velite.png",
     move: 4,
@@ -98,6 +103,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "light-cavalry",
     name: "輕騎兵",
+    role: "lightCav",
     faction: "fantasy-human",
     art: "light-cavalry.png",
     move: 6,
@@ -115,6 +121,7 @@ export const SQUAD_TYPES: SquadType[] = [
   {
     id: "heavy-cavalry",
     name: "重騎兵",
+    role: "heavyCav",
     faction: "fantasy-human",
     art: "heavy-cavalry.png",
     move: 5,
@@ -215,84 +222,140 @@ function baseClone(id: string): Omit<SquadType, "id" | "name" | "art" | "desc"> 
 export const HISTORICAL_TYPES: SquadType[] = [
   // ── 撒克遜 ──
   {
-    id: "saxon-huscarl", name: "王室家臣兵", faction: "saxon", art: "saxon-huscarl.webp",
+    id: "saxon-huscarl", name: "王室家臣兵", faction: "saxon", art: "saxon-huscarl.webp", role: "heavyInf",
     move: 3, range: 1, soldiers: 16, hp: 14, dmg: [4, 6], defense: 0.3,
     traits: ["shieldWall"], tags: ["infantry"], cost: 180, soldierCost: 11,
     desc: "國王與伯爵的職業親兵,揮舞長柄丹麥斧。與相鄰的盾牆部隊互相掩護,騎兵正面撞不動。",
   },
   {
-    id: "saxon-fyrd", name: "民兵(弗德)", faction: "saxon", art: "saxon-fyrd.webp",
+    id: "saxon-fyrd", name: "民兵(弗德)", faction: "saxon", art: "saxon-fyrd.webp", role: "lineInf",
     move: 3, range: 1, soldiers: 22, hp: 9, dmg: [2, 4], defense: 0.1,
     traits: ["shieldWall", "antiCavalry", "levy"], tags: ["infantry"], cost: 80, soldierCost: 4,
     desc: "各郡徵召的自由農民,拿長矛與圓盾。單兵不強但人多便宜,排進盾牆就是一道厚牆。",
   },
   {
-    id: "saxon-archer", name: "撒克遜弓手", faction: "saxon", art: "saxon-archer.webp",
+    id: "saxon-archer", name: "撒克遜弓手", faction: "saxon", art: "saxon-archer.webp", role: "archer",
     move: 3, range: 3, soldiers: 14, hp: 7, dmg: [3, 5], meleeDmg: [1, 2], defense: 0.05,
     traits: [], tags: ["ranged"], cost: 110, soldierCost: 7,
     desc: "人數不多的輕裝弓手。躲在盾牆後面放箭,被貼身就危險了。",
   },
   {
-    id: "saxon-thegn", name: "騎乘鄉紳", faction: "saxon", art: "saxon-thegn.webp",
+    id: "saxon-thegn", name: "騎乘鄉紳", faction: "saxon", art: "saxon-thegn.webp", role: "lightCav",
     move: 5, range: 1, soldiers: 12, hp: 13, dmg: [4, 6], defense: 0.2,
     traits: ["charge"], tags: ["cavalry"], cost: 200, soldierCost: 14,
     desc: "騎馬趕路的地方貴族。英格蘭軍少數的機動力量,適合追擊與包抄。",
   },
   // ── 挪威 ──
   {
-    id: "norse-hirdman", name: "維京親衛", faction: "norse", art: "norse-hirdman.webp",
+    id: "norse-hirdman", name: "維京親衛", faction: "norse", art: "norse-hirdman.webp", role: "heavyInf",
     move: 3, range: 1, soldiers: 16, hp: 14, dmg: [4, 6], defense: 0.3,
     traits: ["shieldWall"], tags: ["infantry"], cost: 180, soldierCost: 11, recruitable: false,
     desc: "挪威王的親兵衛隊。圓盾相扣結成盾牆,是維京軍的骨幹。",
   },
   {
-    id: "norse-raider", name: "維京戰士", faction: "norse", art: "norse-raider.webp",
+    id: "norse-raider", name: "維京戰士", faction: "norse", art: "norse-raider.webp", role: "lineInf",
     move: 3, range: 1, soldiers: 20, hp: 11, dmg: [3, 5], defense: 0.2,
     traits: ["shieldWall"], tags: ["infantry"], cost: 120, soldierCost: 6, recruitable: false,
     desc: "隨王出征的自由戰士,劍、斧、圓盾樣樣來。",
   },
   {
-    id: "norse-berserker", name: "狂戰士", faction: "norse", art: "norse-berserker.webp",
+    id: "norse-berserker", name: "狂戰士", faction: "norse", art: "norse-berserker.webp", role: "heavyInf",
     move: 4, range: 1, soldiers: 12, hp: 13, dmg: [5, 7], defense: 0.1,
     traits: ["berserk"], tags: ["infantry"], cost: 200, soldierCost: 14, recruitable: false,
     desc: "披著熊皮、陷入狂怒的戰士。主動近戰傷害 +25%,但幾乎不穿甲。",
   },
   {
-    id: "norse-archer", name: "維京弓手", faction: "norse", art: "norse-archer.webp",
+    id: "norse-archer", name: "維京弓手", faction: "norse", art: "norse-archer.webp", role: "archer",
     move: 3, range: 3, soldiers: 14, hp: 7, dmg: [3, 5], meleeDmg: [1, 2], defense: 0.05,
     traits: [], tags: ["ranged"], cost: 110, soldierCost: 7, recruitable: false,
     desc: "北地獵手出身的弓手。",
   },
   // ── 諾曼 ──
   {
-    id: "norman-knight", name: "諾曼騎士", faction: "norman", art: "norman-knight.webp",
+    id: "norman-knight", name: "諾曼騎士", faction: "norman", art: "norman-knight.webp", role: "heavyCav",
     move: 5, range: 1, soldiers: 10, hp: 18, dmg: [5, 8], defense: 0.3,
     traits: ["charge"], tags: ["cavalry"], cost: 300, soldierCost: 24, recruitable: false,
     desc: "披鎖甲、持風箏盾與騎槍的騎士。助跑衝鋒極痛,但正面撞上盾牆會吃大虧。",
   },
   {
-    id: "norman-breton", name: "布列塔尼輕騎", faction: "norman", art: "norman-breton.webp",
+    id: "norman-breton", name: "布列塔尼輕騎", faction: "norman", art: "norman-breton.webp", role: "lightCav",
     move: 6, range: 1, soldiers: 12, hp: 13, dmg: [4, 6], defense: 0.15,
     traits: ["charge"], tags: ["cavalry"], cost: 200, soldierCost: 14, recruitable: false,
     desc: "威廉左翼的布列塔尼盟軍。來去如風,擅長引誘敵人追出陣線。",
   },
   {
-    id: "norman-crossbow", name: "諾曼弩手", faction: "norman", art: "norman-crossbow.webp",
+    id: "norman-crossbow", name: "諾曼弩手", faction: "norman", art: "norman-crossbow.webp", role: "archer",
     move: 3, range: 3, soldiers: 12, hp: 8, dmg: [4, 6], meleeDmg: [1, 2], defense: 0.1,
     traits: ["pierce"], tags: ["ranged"], cost: 160, soldierCost: 10, recruitable: false,
     desc: "當時英格蘭少見的弩。穿甲:無視目標一半的兵種減傷,專剋重甲家臣兵。",
   },
   {
-    id: "norman-archer", name: "諾曼弓手", faction: "norman", art: "norman-archer.webp",
+    id: "norman-archer", name: "諾曼弓手", faction: "norman", art: "norman-archer.webp", role: "archer",
     move: 3, range: 3, soldiers: 15, hp: 7, dmg: [3, 5], meleeDmg: [1, 2], defense: 0.05,
     traits: [], tags: ["ranged"], cost: 120, soldierCost: 7, recruitable: false,
     desc: "威廉陣列最前排的弓手。黑斯廷斯傍晚那支「射中哈羅德眼睛」的箭,傳說就來自他們。",
   },
   {
-    id: "norman-infantry", name: "諾曼步兵", faction: "norman", art: "norman-infantry.webp",
+    id: "norman-infantry", name: "諾曼步兵", faction: "norman", art: "norman-infantry.webp", role: "lineInf",
     move: 3, range: 1, soldiers: 18, hp: 12, dmg: [3, 5], defense: 0.25,
     traits: ["firstStrike"], tags: ["infantry"], cost: 130, soldierCost: 7, recruitable: false,
     desc: "持矛與風箏盾的步兵,負責在騎士衝鋒前後撕開敵陣。",
+  },
+  // ── 百年戰爭:英格蘭 ──
+  {
+    id: "eng-longbow", name: "英格蘭長弓手", faction: "english", art: "eng-longbow.webp", role: "archer",
+    move: 3, range: 4, soldiers: 14, hp: 7, dmg: [4, 6], meleeDmg: [2, 3], defense: 0.05,
+    traits: ["volley"], tags: ["ranged"], cost: 170, soldierCost: 10,
+    desc: "威爾斯與英格蘭的自由民,一分鐘能射十箭。拋射不衰減,是這場戰爭的主角——但被騎兵貼身就危險。",
+  },
+  {
+    id: "eng-manatarms", name: "徒步重甲兵", faction: "english", art: "eng-manatarms.webp", role: "heavyInf",
+    move: 3, range: 1, soldiers: 16, hp: 15, dmg: [4, 6], defense: 0.35,
+    traits: ["shieldWall"], tags: ["infantry"], cost: 190, soldierCost: 12,
+    desc: "下馬作戰的騎士與扈從,全身板甲、手持長柄斧。與友軍並肩結陣,騎兵撞不動。",
+  },
+  {
+    id: "eng-billman", name: "鉤鐮槍兵", faction: "english", art: "eng-billman.webp", role: "lineInf",
+    move: 3, range: 1, soldiers: 20, hp: 10, dmg: [3, 4], defense: 0.15,
+    traits: ["firstStrike", "antiCavalry"], tags: ["infantry"], cost: 110, soldierCost: 5,
+    desc: "拿長柄鉤鐮的步兵,專門把騎士從馬上鉤下來。便宜耐用,守在長弓手前面。",
+  },
+  {
+    id: "eng-hobelar", name: "騎乘步兵", faction: "english", art: "eng-hobelar.webp", role: "lightCav",
+    move: 6, range: 1, soldiers: 12, hp: 12, dmg: [3, 5], defense: 0.15,
+    traits: ["charge"], tags: ["cavalry"], cost: 170, soldierCost: 12,
+    desc: "騎小馬趕路的輕裝兵,機動力是英軍少有的長處,適合追擊與包抄。",
+  },
+  {
+    id: "eng-knight", name: "英格蘭騎士", faction: "english", art: "eng-knight.webp", role: "heavyCav",
+    move: 5, range: 1, soldiers: 10, hp: 18, dmg: [5, 8], defense: 0.3,
+    traits: ["charge"], tags: ["cavalry"], cost: 300, soldierCost: 24,
+    desc: "保留在馬上的精銳騎士,用在決定性的側翼突擊。",
+  },
+  // ── 百年戰爭:法蘭西 ──
+  {
+    id: "fr-knight", name: "法蘭西騎士", faction: "french", art: "fr-knight.webp", role: "heavyCav",
+    move: 5, range: 1, soldiers: 12, hp: 18, dmg: [5, 8], defense: 0.3,
+    traits: ["charge"], tags: ["cavalry"], cost: 300, soldierCost: 24, recruitable: false,
+    desc: "歐洲最驕傲的騎士。衝鋒無人能擋——前提是別撞上木樁、泥濘和長弓。",
+  },
+  {
+    id: "fr-manatarms", name: "法蘭西重甲兵", faction: "french", art: "fr-manatarms.webp", role: "heavyInf",
+    move: 3, range: 1, soldiers: 16, hp: 15, dmg: [4, 6], defense: 0.35,
+    traits: [], tags: ["infantry"], cost: 190, soldierCost: 12, recruitable: false,
+    desc: "下馬的法蘭西貴族,甲冑精良。人多勢眾,但在泥地裡走得很辛苦。",
+  },
+  {
+    id: "genoese", name: "熱那亞弩手", faction: "french", art: "genoese.webp", role: "archer",
+    move: 3, range: 3, soldiers: 12, hp: 8, dmg: [4, 6], meleeDmg: [1, 2], defense: 0.15,
+    traits: ["pierce"], tags: ["ranged"], cost: 160, soldierCost: 10, recruitable: false,
+    desc: "法王重金聘來的傭兵弩手。穿甲,但裝填慢、射程輸給長弓。",
+  },
+  {
+    id: "fr-militia", name: "城市民兵", faction: "french", art: "fr-militia.webp", role: "lineInf",
+    move: 3, range: 1, soldiers: 20, hp: 10, dmg: [3, 4], defense: 0.15,
+    traits: ["antiCavalry"], tags: ["infantry"], cost: 100, soldierCost: 5, recruitable: false,
+    desc: "拿長戟的市民兵,守城與攻城的主力。",
   },
 ];
 

@@ -31,6 +31,9 @@ export type TraitId =
 
 export type UnitTag = "cavalry" | "infantry" | "ranged";
 
+/** 兵種定位:跨時代傳承時,老兵隊轉成新時代「同定位」的兵種 */
+export type UnitRole = "heavyInf" | "lineInf" | "archer" | "lightCav" | "heavyCav" | "skirmisher";
+
 export interface SquadType {
   id: string;
   name: string;
@@ -54,6 +57,7 @@ export interface SquadType {
   defense: number;
   traits: TraitId[];
   tags: UnitTag[];
+  role?: UnitRole;
   /** 招募價格(金) */
   cost: number;
   /** 補一名士兵的價格(金) */
@@ -74,7 +78,9 @@ export type FactionId =
   | "fantasy-orc"
   | "saxon" //    盎格魯-撒克遜英格蘭
   | "norse" //    挪威維京
-  | "norman"; //  諾曼第
+  | "norman" //   諾曼第
+  | "english" //  百年戰爭英格蘭
+  | "french"; //   百年戰爭法蘭西
 
 export interface FactionDef {
   id: FactionId;
@@ -193,7 +199,9 @@ export type VictoryCondition =
   /** 撐到第 N 回合結束時,我方仍占有任一目標格(或目標格沒有被敵方占領) */
   | { kind: "holdUntil"; turn: number; hexes: Cell[]; requireOccupied?: boolean }
   /** 撐過第 N 回合即勝 */
-  | { kind: "survive"; turn: number };
+  | { kind: "survive"; turn: number }
+  /** 任一輪結束時,我方占領全部目標格即勝(攻城) */
+  | { kind: "capture"; hexes: Cell[] };
 
 export type DefeatCondition =
   | { kind: "annihilated" }
@@ -356,6 +364,10 @@ export interface RosterSquad {
   soldiers: number;
   /** 指揮官隊(陣亡 = 劇情失敗條件) */
   commanderId?: string;
+  /** 番號(跨時代傳承的老兵隊才有) */
+  lineage?: string;
+  /** 戰功:打贏過的戰役 */
+  honors?: string[];
 }
 
 /** 奇幻外傳的關卡定義(舊格式,載入時轉成 ScenarioDef) */
@@ -382,6 +394,21 @@ export interface CampaignTrack {
   stage?: number;
   /** 戰爭中前一戰留下的影響(例如敵軍戰損比例) */
   flags?: Record<string, number>;
+  /** 裝備中的遺物 */
+  relic?: string;
+  /** 已經收下前一時代傳來的老兵 */
+  heirsApplied?: boolean;
+}
+
+/** 傳給下一時代的老兵隊 */
+export interface HeirRecord {
+  fromWar: string;
+  squad: RosterSquad;
+}
+
+export interface LegacyState {
+  heirs: HeirRecord[];
+  relics: string[];
 }
 
 export interface CampaignState {
@@ -390,6 +417,7 @@ export interface CampaignState {
   /** 目前在哪條線:'fantasy' 或戰爭 id */
   active: string;
   tracks: Record<string, CampaignTrack>;
+  legacy?: LegacyState;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -417,4 +445,8 @@ export interface WarDef {
   mapArt: string;
   intro: StoryPage[];
   epilogue: StoryPage[];
+  /** 打完這場戰爭獲得的遺物 */
+  relic?: string;
+  /** 老兵從哪一場戰爭傳過來 */
+  prevWar?: string;
 }

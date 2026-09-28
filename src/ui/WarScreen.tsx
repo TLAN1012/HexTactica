@@ -8,8 +8,10 @@ import { getCommander } from "../game/factions";
 import { getScenario } from "../game/scenarios";
 import type { CampaignTrack, ScenarioDef, WarDef } from "../game/types";
 import { portraitArt, storyArt } from "./assets";
+import { getRelic, lineageName, MAX_HEIRS } from "../game/legacy";
+import { getSquadType } from "../game/units";
 
-export function WarScreen({ war, track, lastResult, onStart, onArmy, onBack, onEpilogue }: {
+export function WarScreen({ war, track, lastResult, onStart, onArmy, onBack, onEpilogue, heirs, onChooseHeirs }: {
   war: WarDef;
   track: CampaignTrack;
   lastResult: BattleResult | null;
@@ -17,6 +19,9 @@ export function WarScreen({ war, track, lastResult, onStart, onArmy, onBack, onE
   onArmy: () => void;
   onBack: () => void;
   onEpilogue: () => void;
+  /** 已選為傳承的老兵(名冊 id) */
+  heirs: string[];
+  onChooseHeirs: (ids: string[]) => void;
 }) {
   const stage = track.stage ?? 0;
   const finished = stage >= war.battles.length;
@@ -122,6 +127,32 @@ export function WarScreen({ war, track, lastResult, onStart, onArmy, onBack, onE
             <div className="title-display" style={{ fontSize: 28 }}>Finis</div>
             <p>這場戰爭已經落幕。</p>
             <button className="btn btn-gold" onClick={onEpilogue}>觀看尾聲</button>
+            {war.relic && (() => {
+              const r = getRelic(war.relic);
+              return r ? <p style={{ marginTop: 12 }}>獲得遺物 <span className="gold">「{r.name}」</span>:{r.desc}</p> : null;
+            })()}
+            <div className="divider" />
+            <div className="frame-title">番號傳承</div>
+            <p className="sub" style={{ marginTop: 0 }}>選最多 {MAX_HEIRS} 支老兵隊傳給下一個時代:轉成同定位的兵種、等級 −1、兵員補滿,保留番號與戰功。</p>
+            <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", textAlign: "left" }}>
+              {track.roster.filter((r) => !r.commanderId).map((r) => {
+                const on = heirs.includes(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    className={`btn ${on ? "btn-primary" : ""}`}
+                    style={{ justifyContent: "flex-start", flexDirection: "column", alignItems: "flex-start" }}
+                    disabled={!on && heirs.length >= MAX_HEIRS}
+                    onClick={() => onChooseHeirs(on ? heirs.filter((x) => x !== r.id) : [...heirs, r.id])}
+                  >
+                    <span>{on ? "✓ " : ""}{lineageName(r)}</span>
+                    <span className="sub" style={{ fontSize: 12 }}>
+                      {getSquadType(r.typeId).name}・{"★".repeat(r.level)}{r.honors?.length ? `・戰功 ${r.honors.length}` : ""}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

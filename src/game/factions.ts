@@ -10,6 +10,8 @@ export const FACTIONS: FactionDef[] = [
   { id: "saxon", name: "英格蘭(撒克遜)", color: "#b8323a", tint: "rgba(184,50,58,0.2)", era: "1066" },
   { id: "norse", name: "挪威(維京)", color: "#3a6fb8", tint: "rgba(58,111,184,0.2)", era: "1066" },
   { id: "norman", name: "諾曼第", color: "#c9a13a", tint: "rgba(201,161,58,0.22)", era: "1066" },
+  { id: "english", name: "英格蘭", color: "#b8323a", tint: "rgba(184,50,58,0.2)", era: "百年戰爭" },
+  { id: "french", name: "法蘭西", color: "#3a6fb8", tint: "rgba(58,111,184,0.2)", era: "百年戰爭" },
 ];
 
 export const COMMANDERS: CommanderDef[] = [
@@ -94,6 +96,29 @@ export const COMMANDERS: CommanderDef[] = [
     facing: "right",
     bio: "手持權杖上陣的主教(據說教士不可見血)。戰況危急時策馬穩住了動搖的諾曼軍。",
   },
+  // ── 百年戰爭 ──
+  { id: "edward3", name: "愛德華三世", title: "英格蘭國王", faction: "english", portrait: "edward3.webp", facing: "left",
+    bio: "宣稱擁有法蘭西王位繼承權,點燃了百年戰爭。克雷西之戰時親自坐鎮風車山丘指揮。" },
+  { id: "blackprince", name: "黑太子愛德華", title: "威爾斯親王", faction: "english", portrait: "blackprince.webp", facing: "left",
+    bio: "十六歲在克雷西指揮前鋒;十年後在普瓦捷生擒法王。一身黑甲,是那個時代的騎士典範。" },
+  { id: "henry5", name: "亨利五世", title: "英格蘭國王", faction: "english", portrait: "henry5.webp", facing: "left",
+    bio: "年輕的國王帶著疲病交加的軍隊,在阿金庫爾面對數倍於己的法軍。「我們這一小群人,我們這群兄弟。」" },
+  { id: "captal", name: "讓・德・格拉伊", title: "布赫領主(加斯科涅)", faction: "english", portrait: "captal.webp", facing: "left",
+    bio: "黑太子麾下的加斯科涅名將。普瓦捷之戰率小隊騎兵繞到法軍背後,一擊定勝負。" },
+  { id: "glasdale", name: "威廉・格拉斯戴爾", title: "圖雷勒堡守將", faction: "english", portrait: "glasdale.webp", facing: "left",
+    bio: "守著奧爾良南岸的橋頭堡壘。曾對貞德破口大罵——最後在撤退時落入羅亞爾河。" },
+  { id: "philip6", name: "腓力六世", title: "法蘭西國王", faction: "french", portrait: "philip6.webp", facing: "left",
+    bio: "瓦盧瓦王朝的第一位國王。在克雷西,他的騎士不等號令就一波波衝上山坡。" },
+  { id: "johnbohemia", name: "盲王約翰", title: "波希米亞國王", faction: "french", portrait: "johnbohemia.webp", facing: "right",
+    bio: "雙目失明,仍讓騎士把馬韁綁在一起,帶他衝進戰場——「好讓我能揮出一劍」。" },
+  { id: "john2", name: "約翰二世", title: "法蘭西國王「好人」", faction: "french", portrait: "john2.webp", facing: "right",
+    bio: "腓力六世之子。普瓦捷一戰,他徒步手持戰斧死戰,最終被俘。" },
+  { id: "dalbret", name: "夏爾・達爾布雷", title: "法蘭西王室統帥", faction: "french", portrait: "dalbret.webp", facing: "right",
+    bio: "阿金庫爾的法軍統帥。數倍兵力、全歐最好的甲冑——卻陷在一片爛泥田裡。" },
+  { id: "joan", name: "貞德", title: "奧爾良的少女", faction: "french", portrait: "joan.webp", facing: "right",
+    bio: "十七歲的農家少女,說自己聽見了天使的聲音。她舉著白旗走到軍隊最前面,奧爾良之圍九天就解除了。" },
+  { id: "dunois", name: "讓・德・杜諾瓦", title: "奧爾良的私生子", faction: "french", portrait: "dunois.webp", facing: "left",
+    bio: "奧爾良守軍的實際指揮官。起初懷疑這位少女,後來成了她最忠實的戰友。" },
 ];
 
 const factionById = new Map(FACTIONS.map((f) => [f.id, f]));
