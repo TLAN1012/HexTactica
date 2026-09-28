@@ -114,7 +114,9 @@ img { -webkit-user-drag: none; user-select: none; }
 .story { position: fixed; inset: 0; z-index: 30; display: flex; flex-direction: column; justify-content: flex-end; cursor: pointer; user-select: none; }
 .story-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
 .story-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 35%, rgba(13,10,12,0.92) 78%); }
-.story-portrait { position: absolute; bottom: 150px; left: max(12px, calc(50% - 470px)); height: min(62vh, 560px); z-index: 1; filter: drop-shadow(0 0 24px rgba(0,0,0,0.8)); mask-image: linear-gradient(#000 80%, transparent); -webkit-mask-image: linear-gradient(#000 80%, transparent); }
+.story-portrait { position: absolute; bottom: 140px; height: min(66vh, 620px); max-width: 60vw; object-fit: contain; object-position: bottom; z-index: 1; filter: drop-shadow(0 0 18px rgba(0,0,0,0.85)); mask-image: linear-gradient(#000 85%, transparent); -webkit-mask-image: linear-gradient(#000 85%, transparent); }
+.story-portrait.at-left { left: max(8px, calc(50% - 480px)); }
+.story-portrait.at-right { right: max(8px, calc(50% - 480px)); }
 .story-box { position: relative; z-index: 2; margin: 0 auto max(16px, env(safe-area-inset-bottom)); width: min(940px, calc(100% - 24px)); min-height: 150px; padding: 18px 22px 16px; }
 .story-name { font-family: var(--font-ui); color: var(--gold-2); font-size: 18px; margin-bottom: 2px; }
 .story-name small { font-family: var(--font); color: var(--muted); font-size: 13px; margin-left: 8px; }
@@ -132,6 +134,7 @@ img { -webkit-user-drag: none; user-select: none; }
 .zoom-ctl { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 4; }
 .zoom-ctl .btn { width: 40px; min-height: 40px; padding: 0; font-size: 18px; }
 .preview { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); z-index: 6; padding: 10px 14px; max-width: min(560px, calc(100% - 70px)); font-size: 14px; }
+.terrain-card { position: absolute; left: 10px; top: 10px; z-index: 4; padding: 8px 12px; max-width: min(260px, calc(100% - 80px)); font-size: 13px; }
 .unit-card { position: absolute; left: 10px; bottom: 10px; z-index: 4; display: flex; gap: 10px; align-items: center; padding: 10px 12px; max-width: min(430px, calc(100% - 20px)); }
 .banner { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 8; text-align: center; pointer-events: none; animation: banner 2.4s ease forwards; }
 @keyframes banner { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.95); } 15%, 75% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; } }
@@ -139,7 +142,9 @@ img { -webkit-user-drag: none; user-select: none; }
 .outcome { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(8,5,7,0.72); }
 
 @media (max-width: 640px) {
-  .story-portrait { left: 50%; transform: translateX(-50%); height: 46vh; bottom: 170px; opacity: 0.95; }
+  .story-portrait { height: 50vh; max-width: 88vw; bottom: 160px; }
+  .story-portrait.at-left { left: 0; }
+  .story-portrait.at-right { right: 0; }
   .unit-card { right: 10px; }
   .log { display: none; }
   .log.open { display: block; bottom: 90px; }

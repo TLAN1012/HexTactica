@@ -19,6 +19,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "英格蘭國王",
     faction: "saxon",
     portrait: "harold.webp",
+    facing: "left",
     bio: "懺悔者愛德華駕崩後由賢人會議推舉為王。即位不到十個月,就得在北方迎戰挪威王、在南方迎戰諾曼公爵。",
   },
   {
@@ -27,6 +28,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "東盎格利亞伯爵・哈羅德之弟",
     faction: "saxon",
     portrait: "gyrth.webp",
+    facing: "left",
     bio: "哈羅德最信任的弟弟。史載他曾勸兄長留守倫敦、由自己領兵迎擊威廉。",
   },
   {
@@ -35,6 +37,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "諾森布里亞伯爵",
     faction: "saxon",
     portrait: "morcar.webp",
+    facing: "right",
     bio: "與兄長埃德溫共守北方。挪威大軍在約克城外登陸時,他們沒有等國王南來,決定正面迎擊。",
   },
   {
@@ -43,6 +46,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "麥西亞伯爵",
     faction: "saxon",
     portrait: "edwin.webp",
+    facing: "left",
     bio: "莫卡之兄。富爾福德一戰與弟弟並肩,在烏斯河與沼澤之間布陣。",
   },
   {
@@ -51,6 +55,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "挪威國王「無情者」",
     faction: "norse",
     portrait: "hardrada.webp",
+    facing: "right",
     bio: "曾任拜占庭瓦蘭吉衛隊統領,傳奇一生的北方戰王。他主張自己才是英格蘭王位的合法繼承人。",
   },
   {
@@ -59,6 +64,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "前諾森布里亞伯爵・哈羅德之弟",
     faction: "norse",
     portrait: "tostig.webp",
+    facing: "left",
     bio: "被放逐的哈羅德親弟,投靠挪威王回來奪取故土。兄弟最終在斯坦福橋兵戎相見。",
   },
   {
@@ -67,6 +73,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "挪威將領",
     faction: "norse",
     portrait: "orri.webp",
+    facing: "right",
     bio: "率兵留守船隊。聽聞國王遇襲,帶著全副盔甲一路狂奔來援——史稱「奧里的風暴」。",
   },
   {
@@ -75,6 +82,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "諾曼第公爵",
     faction: "norman",
     portrait: "william.webp",
+    facing: "right",
     bio: "私生子出身、少年即位,在內戰中磨成最冷靜的指揮官。渡海而來,要奪取他認為被許諾的王冠。",
   },
   {
@@ -83,6 +91,7 @@ export const COMMANDERS: CommanderDef[] = [
     title: "巴約主教・威廉之弟",
     faction: "norman",
     portrait: "odo.webp",
+    facing: "right",
     bio: "手持權杖上陣的主教(據說教士不可見血)。戰況危急時策馬穩住了動搖的諾曼軍。",
   },
 ];

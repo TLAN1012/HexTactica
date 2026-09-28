@@ -30,8 +30,8 @@ import { aliveSoldiers, maxHpPool, maxSoldiers } from "../game/progression";
 import { getTerrain } from "../game/terrain";
 import { getSquadType } from "../game/units";
 import type { AttackPreview, BattleState, FactionId, Squad } from "../game/types";
-import { TRAIT_INFO } from "./traits";
-import { terrainArt, unitArt } from "./assets";
+import { TRAIT_INFO, TRAIT_NAME } from "./traits";
+import { spriteArt, SPRITE_FACES_LEFT, terrainArt } from "./assets";
 
 const HEX = 40;
 const AI_STEP_MS = 480;
@@ -65,6 +65,8 @@ export function BattleScreen(props: BattleScreenProps) {
   const [armedTarget, setArmedTarget] = useState<string | null>(null);
   /** 查看中的敵方部隊(點敵人但不是攻擊時) */
   const [inspectId, setInspectId] = useState<string | null>(null);
+  /** 最後點到的格(觸控沒有 hover,用它當地形資訊的焦點) */
+  const [focusHex, setFocusHex] = useState<Hex | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const [banner, setBanner] = useState<{ id: number; text: string; sub?: string } | null>(null);
   const [history, setHistory] = useState<BattleState[]>([]);
@@ -157,6 +159,7 @@ export function BattleScreen(props: BattleScreenProps) {
 
   function onHexTap(h: Hex) {
     if (drag.current.moved) return;
+    setFocusHex(h);
     if (!isPlayerTurn) return;
     const key = hexKey(h);
     const who = squadAt(battle, h);
@@ -375,7 +378,8 @@ export function BattleScreen(props: BattleScreenProps) {
                       style={{ pointerEvents: "none" }}
                     />
                   )}
-                  <polygon points={pts} fill="url(#vignette)" stroke="rgba(10,6,8,0.85)" strokeWidth={1} style={{ pointerEvents: "none" }} />
+                  <polygon points={pts} fill="rgba(236,222,190,0.30)" style={{ pointerEvents: "none" }} />
+                  <polygon points={pts} fill="url(#vignette)" stroke="rgba(40,28,20,0.55)" strokeWidth={1} style={{ pointerEvents: "none" }} />
                   {objectives.has(key) && (
                     <g style={{ pointerEvents: "none" }} transform={`translate(${-HEX * 0.35},${-HEX * 0.55})`}>
                       <line x1={0} y1={0} x2={0} y2={HEX * 0.75} stroke="#3a2a14" strokeWidth={2} />
@@ -454,10 +458,11 @@ export function BattleScreen(props: BattleScreenProps) {
           </div>
         )}
 
-        {selected && !preview && <UnitCard squad={selected} battle={battle} color={colors.player} />}
+        {(hoverHex ?? focusHex) && <TerrainCard battle={battle} hex={(hoverHex ?? focusHex)!} />}
+        {selected && !preview && <UnitCard squad={selected} color={colors.player} />}
         {!selected && inspectId && (() => {
           const foe = battle.squads.find((x) => x.id === inspectId && x.hpPool > 0);
-          return foe ? <UnitCard squad={foe} battle={battle} color={colors.enemy} /> : null;
+          return foe ? <UnitCard squad={foe} color={colors.enemy} /> : null;
         })()}
 
         {logOpen && (
@@ -478,7 +483,7 @@ export function BattleScreen(props: BattleScreenProps) {
         )}
 
         {battle.activeSide === "enemy" && battle.outcome === "ongoing" && (
-          <div className="chip" style={{ position: "absolute", left: 10, top: 10, color: colors.enemy, zIndex: 4 }}>
+          <div className="chip" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: 10, color: colors.enemy, zIndex: 4, background: "rgba(13,10,12,0.85)" }}>
             ⚔ 敵軍行動中…
           </div>
         )}
@@ -556,24 +561,50 @@ const LOG_COLOR: Record<string, string> = {
   event: "#f0d58a",
 };
 
+/** 小隊 = 幾個小人(看形狀就知道兵種);指揮官隊與器械只畫一個。人數徽章保留 */
 function SquadToken({ squad, color, selected, dimmed, pts }: { squad: Squad; color: string; selected: boolean; dimmed: boolean; pts: string }) {
   const { x, y } = hexToPixel(squad.pos, HEX);
   const alive = aliveSoldiers(squad);
   const ratio = squad.hpPool / maxHpPool(squad.typeId, squad.level);
+  const type = getSquadType(squad.typeId);
+  const spriteId = squad.commanderId ? `cmd-${squad.commanderId}` : squad.typeId;
+  const single = !!squad.commanderId || !!type.single;
+  // 我方朝右、敵方朝左
+  const facesLeft = SPRITE_FACES_LEFT.has(spriteId);
+  const flip = (squad.side === "player") === facesLeft;
+  const big = HEX * 1.25;
+  const small = HEX * 0.95;
+  const figures = single
+    ? [{ dx: 0, dy: -HEX * 0.1, size: big }]
+    : [
+        { dx: -HEX * 0.42, dy: -HEX * 0.22, size: small },
+        { dx: HEX * 0.42, dy: -HEX * 0.22, size: small },
+        { dx: 0, dy: HEX * 0.02, size: small },
+      ];
   return (
-    <g transform={`translate(${x},${y})`} style={{ pointerEvents: "none" }}>
-      <polygon points={pts} fill="rgba(8,5,7,0.35)" stroke={color} strokeWidth={3.2} strokeLinejoin="round" />
-      <circle r={HEX * 0.72} fill="#120c10" stroke="#c9a24a" strokeWidth={1.6} />
-      <image href={unitArt(squad.typeId)} x={-HEX * 0.7} y={-HEX * 0.7} width={HEX * 1.4} height={HEX * 1.4} clipPath="url(#tokenClip)" preserveAspectRatio="xMidYMid slice" />
-      <circle r={HEX * 0.72} fill="none" stroke={color} strokeWidth={1.4} opacity={0.9} />
-      {dimmed && <circle r={HEX * 0.72} fill="rgba(0,0,0,0.55)" />}
+    <g transform={`translate(${x},${y})`} style={{ pointerEvents: "none", opacity: dimmed ? 0.55 : 1 }}>
+      <polygon points={pts} fill={color} fillOpacity={0.16} stroke={color} strokeWidth={3} strokeLinejoin="round" />
+      <ellipse cx={0} cy={HEX * 0.5} rx={HEX * 0.72} ry={HEX * 0.16} fill="rgba(0,0,0,0.35)" />
+      {figures.map((f, i) => (
+        <image
+          key={i}
+          href={spriteArt(spriteId)}
+          x={f.dx - f.size / 2}
+          y={f.dy + HEX * 0.55 - f.size}
+          width={f.size}
+          height={f.size}
+          preserveAspectRatio="xMidYMax meet"
+          transform={flip ? `translate(${2 * f.dx},0) scale(-1,1)` : undefined}
+          style={{ filter: dimmed ? "grayscale(0.8)" : "drop-shadow(0 1px 1px rgba(0,0,0,0.7))" }}
+        />
+      ))}
       {selected && <polygon points={pts} fill="none" stroke="#f0d58a" strokeWidth={3.4} style={{ filter: "drop-shadow(0 0 6px #f0d58a)" }} />}
       {squad.commanderId && (
-        <text x={0} y={-HEX * 0.62} textAnchor="middle" fontSize={16} style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 3 }} fill="#f0d58a">
+        <text x={-HEX * 0.55} y={-HEX * 0.5} textAnchor="middle" fontSize={15} style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 3 }} fill="#f0d58a">
           ♛
         </text>
       )}
-      <g transform={`translate(${HEX * 0.5},${HEX * 0.52})`}>
+      <g transform={`translate(${HEX * 0.52},${HEX * 0.5})`}>
         <rect x={-14} y={-10} width={28} height={18} rx={3} fill={color} stroke="#0d0a0c" strokeWidth={1} />
         <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" fontFamily="Cinzel, serif">
           {alive}
@@ -592,26 +623,67 @@ function SquadToken({ squad, color, selected, dimmed, pts }: { squad: Squad; col
   );
 }
 
-function UnitCard({ squad, battle, color }: { squad: Squad; battle: BattleState; color: string }) {
+function UnitCard({ squad, color }: { squad: Squad; color: string }) {
   const t = getSquadType(squad.typeId);
-  const terr = getTerrain(battle.terrain[hexKey(squad.pos)] ?? "plains");
   const cmd = squad.commanderId ? getCommander(squad.commanderId) : null;
+  const enemy = squad.side === "enemy";
+  const traits = t.traits.filter((x) => x !== "levy");
   return (
     <div className="frame unit-card fade-in">
-      <img className="token" src={unitArt(squad.typeId)} width={64} height={64} alt="" style={{ borderColor: color }} />
+      <img src={spriteArt(squad.commanderId ? `cmd-${squad.commanderId}` : squad.typeId)} width={64} height={64} alt="" style={{ objectFit: "contain", flex: "none" }} />
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 700 }}>
+        <div style={{ fontWeight: 700, color }}>
+          {enemy ? "敵方・" : ""}
           {cmd ? `♛ ${cmd.name}・` : ""}
           {t.name} <span className="stars">{"★".repeat(squad.level - 1)}</span>
         </div>
-        <div className="sub" style={{ fontSize: 12.5 }}>
-          {aliveSoldiers(squad)}/{maxSoldiers(squad.typeId, squad.level)} 人・移動 {t.move}・射程 {t.range}・{terr.name}
-          {terr.defense ? `(承傷 ${terr.defense > 0 ? "−" : "+"}${Math.round(Math.abs(terr.defense) * 100)}%)` : ""}
-        </div>
-        {t.traits.filter((x) => x !== "levy").map((tr) => (
-          <div key={tr} style={{ fontSize: 12, color: "var(--gold-2)" }}>
-            {TRAIT_INFO[tr]}
-          </div>
+        {enemy ? (
+          <>
+            <div style={{ fontSize: 13, lineHeight: 1.6, marginTop: 2 }}>{t.desc}</div>
+            {traits.length > 0 && <div style={{ fontSize: 12.5, color: "var(--gold-2)", marginTop: 2 }}>特性:{traits.map((x) => TRAIT_NAME[x]).join("、")}</div>}
+            {cmd && <div className="sub" style={{ fontSize: 12 }}>指揮官:周圍的部隊更勇猛</div>}
+          </>
+        ) : (
+          <>
+            <div className="sub" style={{ fontSize: 12.5 }}>
+              {aliveSoldiers(squad)}/{maxSoldiers(squad.typeId, squad.level)} 人・移動 {t.move}・射程 {t.range}
+            </div>
+            {traits.map((tr) => (
+              <div key={tr} style={{ fontSize: 12, color: "var(--gold-2)" }}>
+                {TRAIT_INFO[tr]}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** 焦點格的地形與它帶來的加減成 */
+function TerrainCard({ battle, hex }: { battle: BattleState; hex: Hex }) {
+  const tid = battle.terrain[hexKey(hex)];
+  if (!tid) return null;
+  const t = getTerrain(tid);
+  const effects: { text: string; good: boolean }[] = [];
+  if (t.impassable) effects.push({ text: "無法通行", good: false });
+  else effects.push({ text: `移動消耗 ${t.moveCost}`, good: t.moveCost <= 1 });
+  if (t.defense > 0) effects.push({ text: `承傷 −${Math.round(t.defense * 100)}%`, good: true });
+  if (t.defense < 0) effects.push({ text: `承傷 +${Math.round(-t.defense * 100)}%`, good: false });
+  if (t.noCharge) effects.push({ text: "不能衝鋒", good: false });
+  if (tid === "hills") effects.push({ text: "敵騎往上衝鋒減半", good: true });
+  if (battle.objectiveHexes.includes(hexKey(hex))) effects.push({ text: "⚑ 目標格", good: true });
+  return (
+    <div className="frame terrain-card fade-in">
+      <div className="row" style={{ gap: 6 }}>
+        <img src={terrainArt(tid)} width={26} height={26} alt="" style={{ borderRadius: 3, border: "1px solid var(--line)" }} />
+        <strong>{t.name}</strong>
+      </div>
+      <div className="row" style={{ gap: 4, marginTop: 4 }}>
+        {effects.map((e) => (
+          <span key={e.text} className="chip" style={{ color: e.good ? "var(--good)" : "var(--bad)", fontSize: 11.5 }}>
+            {e.text}
+          </span>
         ))}
       </div>
     </div>
