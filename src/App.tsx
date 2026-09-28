@@ -12,17 +12,25 @@ import { audio } from "./audio/AudioManager";
 import { initBattle } from "./game/battle";
 import {
   applyBattleResult,
+  applyHeirs,
   clearSave,
   getTrack,
   loadCampaign,
   newCampaign,
   prepareScenario,
+  relicMods,
   saveCampaign,
   updateTrack,
   type BattleResult,
 } from "./game/campaign";
 import { getDifficulty } from "./game/difficulty";
 import { FANTASY_TRACK, getWar, missionToScenario } from "./game/scenarios";
+import { recordHeirs } from "./game/legacy";
+
+/** 這條線的主角陣營(奧爾良這種視角轉換的戰役不套遺物) */
+function getWarFaction(trackId: string) {
+  return trackId === FANTASY_TRACK ? "fantasy-human" : getWar(trackId).playerFaction;
+}
 import type { BattleState, CampaignState, ScenarioDef, StoryPage } from "./game/types";
 import { ArmyScreen } from "./ui/ArmyScreen";
 import { BattleScreen } from "./ui/BattleScreen";
@@ -85,6 +93,7 @@ export default function App() {
     (warId: string) => {
       setTrackId(warId);
       setLastResult(null);
+      if (campaign) setCampaign({ ...applyHeirs(campaign, warId), active: warId });
       const war = getWar(warId);
       const seen = localStorage.getItem(`${SEEN_KEY}-${warId}`);
       if (!seen) {
@@ -93,12 +102,12 @@ export default function App() {
         } catch {
           /* noop */
         }
-        playStory({ pages: war.intro, background: "title.webp", title: war.title, then: () => setScreen("war") });
+        playStory({ pages: war.intro, background: war.id === "war-1066" ? "title.webp" : war.mapArt, title: war.title, then: () => setScreen("war") });
       } else {
         setScreen("war");
       }
     },
-    [playStory],
+    [playStory, campaign],
   );
 
   const startBattle = useCallback(
@@ -108,7 +117,8 @@ export default function App() {
       setScenario(prepared);
       setTrackId(tId);
       const begin = () => {
-        setBattle(initBattle(prepared, getTrack(campaign, tId).roster, campaign.difficulty, getTrack(campaign, tId).gold));
+        const t = getTrack(campaign, tId);
+        setBattle(initBattle(prepared, t.roster, campaign.difficulty, t.gold, prepared.playerFaction === getWarFaction(tId) ? relicMods(t) : []));
         setScreen("battle");
       };
       playStory({ pages: prepared.intro ?? [], background: prepared.art, title: prepared.title, then: begin });
@@ -193,7 +203,9 @@ export default function App() {
           setScreen("army");
         }}
         onBack={() => setScreen("hub")}
-        onEpilogue={() => playStory({ pages: war.epilogue, background: "title.webp", then: () => setScreen("war") })}
+        onEpilogue={() => playStory({ pages: war.epilogue, background: war.mapArt, then: () => setScreen("war") })}
+        heirs={(campaign.legacy?.heirs ?? []).filter((h) => h.fromWar === war.id).map((h) => h.squad.id)}
+        onChooseHeirs={(ids) => setCampaign(recordHeirs(campaign, war.id, getTrack(campaign, trackId).roster.filter((r) => ids.includes(r.id))))}
       />
     );
   } else if (screen === "fantasy") {
@@ -214,6 +226,7 @@ export default function App() {
       <ArmyScreen
         track={getTrack(campaign, trackId)}
         trackId={trackId}
+        relics={campaign.legacy?.relics ?? []}
         onChange={(t) => setCampaign(updateTrack(campaign, trackId, () => t))}
         onBack={() => setScreen(armyReturn)}
       />

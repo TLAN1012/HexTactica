@@ -7,11 +7,13 @@ import { maxSoldiers, XP_THRESHOLDS, MAX_LEVEL } from "../game/progression";
 import { getSquadType } from "../game/units";
 import type { CampaignTrack } from "../game/types";
 import { unitArt } from "./assets";
+import { getRelic } from "../game/legacy";
 import { TRAIT_INFO } from "./traits";
 
-export function ArmyScreen({ track, trackId, onChange, onBack }: {
+export function ArmyScreen({ track, trackId, relics, onChange, onBack }: {
   track: CampaignTrack;
   trackId: string;
+  relics: string[];
   onChange: (t: CampaignTrack) => void;
   onBack: () => void;
 }) {
@@ -44,6 +46,8 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
                         {r.commanderId ? `♛ ${getCommander(r.commanderId).name}・` : ""}
                         {t.name}
                       </div>
+                      {r.lineage && <div style={{ fontSize: 12, color: "var(--gold-2)" }}>⚜ {r.lineage}</div>}
+                      {r.honors && r.honors.length > 0 && <div className="sub" style={{ fontSize: 11.5 }} title={r.honors.join("、")}>戰功:{r.honors.slice(-3).join("、")}{r.honors.length > 3 ? "…" : ""}</div>}
                       <div className="stars">{"★".repeat(r.level)}<span className="sub">{"☆".repeat(MAX_LEVEL - r.level)}</span></div>
                       <div className="sub" style={{ fontSize: 12 }}>{r.soldiers} / {max} 人{nextXp !== null ? `・經驗 ${r.xp}/${nextXp}` : "・滿級"}</div>
                       <div className="bar" style={{ marginTop: 4 }}><i style={{ width: `${(r.soldiers / max) * 100}%` }} /></div>
@@ -62,6 +66,24 @@ export function ArmyScreen({ track, trackId, onChange, onBack }: {
             })}
           </div>
         </div>
+
+        {relics.length > 0 && trackId !== "fantasy" && (
+          <div className="frame" style={{ marginTop: 18 }}>
+            <div className="frame-title">遺物(裝備一件,全軍生效)</div>
+            <div className="row">
+              <button className={`btn btn-sm ${!track.relic ? "btn-primary" : ""}`} onClick={() => onChange({ ...track, relic: undefined })}>不裝備</button>
+              {relics.map((id) => {
+                const r = getRelic(id);
+                return r ? (
+                  <button key={id} className={`btn btn-sm ${track.relic === id ? "btn-primary" : ""}`} title={r.desc} onClick={() => onChange({ ...track, relic: id })}>
+                    ⚜ {r.name}
+                  </button>
+                ) : null;
+              })}
+            </div>
+            {track.relic && <p className="sub">{getRelic(track.relic)?.desc}</p>}
+          </div>
+        )}
 
         <div className="frame" style={{ marginTop: 18 }}>
           <div className="frame-title">招募</div>

@@ -5,8 +5,7 @@ import { simulateBattle } from "../sim";
 
 describe("AI 對打模擬:每場都能打完、沒有卡死", () => {
   const c = newCampaign("knight");
-  const war = WARS[0];
-  for (const b of war.battles) {
+  for (const war of WARS) for (const b of war.battles) {
     it(`${b.scenarioId} 各難度都能分出勝負`, () => {
       const sc = prepareScenario(getScenario(b.scenarioId), c.tracks[war.id]);
       for (const diff of ["squire", "legend"] as const) {

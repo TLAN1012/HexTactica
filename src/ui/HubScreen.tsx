@@ -4,14 +4,13 @@
 import { useState } from "react";
 import { getDifficulty } from "../game/difficulty";
 import { MISSIONS } from "../game/missions";
-import { FANTASY_TRACK, WARS } from "../game/scenarios";
+import { FANTASY_TRACK, getScenario, WARS } from "../game/scenarios";
 import type { CampaignState, DifficultyId } from "../game/types";
 import { storyArt, artUrl } from "./assets";
 import { DifficultyPicker } from "./TitleScreen";
 import { MuteButton } from "./MuteButton";
 
 const COMING = [
-  { title: "百年戰爭", years: "1346–1415", note: "克雷西・普瓦捷・阿金庫爾——長弓對重騎兵" },
   { title: "拿破崙戰爭", years: "1805–1815", note: "奧斯特里茨・滑鐵盧——線列、方陣與大砲" },
   { title: "韓戰", years: "1950", note: "釜山防線・仁川・長津湖——戰車、火砲與空中支援" },
 ];
@@ -43,7 +42,7 @@ export function HubScreen({ campaign, onOpenWar, onOpenFantasy, onDifficulty, on
             const stage = t.stage ?? 0;
             return (
               <button key={w.id} className="frame fade-in" style={{ padding: 0, overflow: "hidden", cursor: "pointer", textAlign: "left", color: "inherit" }} onClick={() => onOpenWar(w.id)}>
-                <div style={{ height: 150, backgroundImage: `url(${storyArt("title.webp")})`, backgroundSize: "cover", backgroundPosition: "center 30%" }} />
+                <div style={{ height: 150, backgroundImage: `url(${storyArt(w.id === "war-1066" ? "title.webp" : w.battles.length ? getScenario(w.battles[w.battles.length - 1].scenarioId).art ?? w.mapArt : w.mapArt)})`, backgroundSize: "cover", backgroundPosition: "center 30%" }} />
                 <div style={{ padding: 14 }}>
                   <div className="row">
                     <span className="h1 grow" style={{ fontSize: 20 }}>{w.title}</span>

@@ -8,8 +8,8 @@ import type { DifficultyId } from "../src/game/types";
 
 it.runIf(process.env.TRACE)("trace", () => {
   const c = newCampaign("knight");
-  const sc = prepareScenario(getScenario(process.env.TRACE!), c.tracks["war-1066"]);
-  const r = simulateBattle(sc, c.tracks["war-1066"].roster, ((process.env.DIFF as DifficultyId | undefined) ?? "knight"), 1001, Number(process.env.SKILL ?? 0.75));
+  const sc = prepareScenario(getScenario(process.env.TRACE!), c.tracks[process.env.TRACE!.startsWith("hyw") ? "war-hyw" : "war-1066"]);
+  const r = simulateBattle(sc, c.tracks[process.env.TRACE!.startsWith("hyw") ? "war-hyw" : "war-1066"].roster, ((process.env.DIFF as DifficultyId | undefined) ?? "knight"), 1001, Number(process.env.SKILL ?? 0.75));
   const lines = r.final.log.filter((l) => l.kind !== "move").map((l) => `T${l.turn} ${l.text}`);
   console.log(lines.slice(0, 400).join("\n"));
   console.log("RESULT", r.outcome, r.reason, r.turns);

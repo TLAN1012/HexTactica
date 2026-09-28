@@ -19,6 +19,10 @@ export const TERRAIN_CHARS: Record<string, string> = {
   "=": "ford",
   b: "bridge",
   v: "village",
+  m: "mud",
+  x: "stakes",
+  g: "hedge",
+  k: "fort",
 };
 
 export function cellToHex([col, row]: Cell): Hex {

@@ -12,9 +12,8 @@ const N = Number(process.env.N ?? 20);
 const SKILL = Number(process.env.SKILL ?? 0.75);
 it.runIf(process.env.BALANCE)("balance report", () => {
   const c = newCampaign("knight");
-  const war = WARS[0];
   const rows: string[] = [];
-  for (const b of war.battles.filter((x) => !process.env.ONLY || x.scenarioId.includes(process.env.ONLY))) {
+  for (const war of WARS.filter((w) => !process.env.WAR || w.id.includes(process.env.WAR))) for (const b of war.battles.filter((x) => !process.env.ONLY || x.scenarioId.includes(process.env.ONLY))) {
     const sc = prepareScenario(getScenario(b.scenarioId), c.tracks[war.id]);
     for (const d of ["squire", "knight", "lord", "legend"] as DifficultyId[]) {
       let wins = 0, turns = 0;

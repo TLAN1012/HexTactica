@@ -17,4 +17,4 @@ export const spriteArt = (id: string) => BASE + "sprites/" + id + ".webp";
  * 小人圖原本臉朝的方向(畫的時候要求朝右,少數沒照做的在這裡登記)。
  * 戰場上我方一律朝右(往敵陣)、敵方朝左,需要時水平翻轉。
  */
-export const SPRITE_FACES_LEFT = new Set<string>(["heavy-cavalry", "norman-knight", "troll-crusher"]);
+export const SPRITE_FACES_LEFT = new Set<string>(["heavy-cavalry", "norman-knight", "troll-crusher", "eng-manatarms", "fr-manatarms", "genoese", "cmd-johnbohemia", "cmd-philip6"]);

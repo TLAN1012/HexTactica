@@ -238,6 +238,7 @@ export const WAR_1066: WarDef = {
   playerFaction: "saxon",
   startGold: 200,
   mapArt: "war-1066.webp",
+  relic: "wessex-dragon",
   startRoster: [
     { typeId: "saxon-huscarl", level: 4, xp: 40, soldiers: 22, commanderId: "harold" },
     { typeId: "saxon-huscarl", level: 2, xp: 8, soldiers: 18 },

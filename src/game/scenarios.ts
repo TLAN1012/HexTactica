@@ -3,6 +3,7 @@
  */
 import { MISSIONS } from "./missions";
 import { SCENARIOS_1066, WAR_1066 } from "./wars/1066";
+import { SCENARIOS_HYW, WAR_HYW } from "./wars/hyw";
 import type { MissionDef, ScenarioDef, WarDef } from "./types";
 
 export const FANTASY_TRACK = "fantasy";
@@ -25,9 +26,9 @@ export function missionToScenario(m: MissionDef): ScenarioDef {
   };
 }
 
-export const WARS: WarDef[] = [WAR_1066];
+export const WARS: WarDef[] = [WAR_1066, WAR_HYW];
 
-const ALL: ScenarioDef[] = [...SCENARIOS_1066, ...MISSIONS.map(missionToScenario)];
+const ALL: ScenarioDef[] = [...SCENARIOS_1066, ...SCENARIOS_HYW, ...MISSIONS.map(missionToScenario)];
 const byId = new Map(ALL.map((s) => [s.id, s]));
 
 export function getScenario(id: string): ScenarioDef {

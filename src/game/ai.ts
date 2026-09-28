@@ -34,7 +34,7 @@ export interface AiOptions {
   rng?: () => number;
 }
 
-const HOLD_RADIUS = 2;
+const HOLD_RADIUS = 1;
 
 const other = (side: SideId): SideId => (side === "player" ? "enemy" : "player");
 
@@ -326,7 +326,8 @@ export function chooseAiAction(
       // 固守隊不離開錨點太遠去追人
       const leash = squad.stance === "hold" && squad.anchor && hexDistance(pos, squad.anchor) > HOLD_RADIUS + 1;
 
-      if (!leash) {
+      // 倒下就輸的指揮官不衝出去打(只在原地出手),避免離開有利地形
+      if (!leash && !isVitalCommander(state, squad)) {
         for (const target of foes) {
           if (hexDistance(pos, target.pos) > t.range) continue;
           const moved = tracePath(squad, reach, pos).length - 1;
