@@ -247,9 +247,9 @@ export const WAR_1066: WarDef = {
     { typeId: "saxon-archer", level: 1, xp: 0, soldiers: 14 },
   ],
   battles: [
-    { scenarioId: FULFORD.id, mapPos: { x: 56, y: 38 }, advanceOnDefeat: true },
-    { scenarioId: STAMFORD.id, mapPos: { x: 62, y: 34 } },
-    { scenarioId: HASTINGS.id, mapPos: { x: 66, y: 86 } },
+    { scenarioId: FULFORD.id, mapPos: { x: 36, y: 42 }, advanceOnDefeat: true },
+    { scenarioId: STAMFORD.id, mapPos: { x: 45, y: 33 } },
+    { scenarioId: HASTINGS.id, mapPos: { x: 47, y: 76 } },
   ],
   intro: [
     { text: "1066 年 1 月 5 日,懺悔者愛德華駕崩,沒有留下子嗣。" },

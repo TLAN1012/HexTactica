@@ -4,6 +4,7 @@
  */
 import { useMemo, useState } from "react";
 import { initBattle } from "../game/battle";
+import { missionToScenario } from "../game/scenarios";
 import {
   TUTORIAL_FINALE,
   TUTORIAL_MISSION,
@@ -15,7 +16,7 @@ import { BattleScreen } from "./BattleScreen";
 
 export function TutorialScreen({ onExit }: { onExit: () => void }) {
   const [battle, setBattle] = useState<BattleState>(() =>
-    initBattle(TUTORIAL_MISSION, tutorialRoster()),
+    initBattle(missionToScenario(TUTORIAL_MISSION), tutorialRoster(), "squire"),
   );
   const [restartKey, setRestartKey] = useState(0);
 
@@ -34,80 +35,31 @@ export function TutorialScreen({ onExit }: { onExit: () => void }) {
     : TUTORIAL_STEPS[Math.min(stepIndex, TUTORIAL_STEPS.length - 1)];
   const [tag, title] = card.title.split("|");
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#1a1510", padding: "12px 0 32px" }}>
-      {/* 步驟卡 */}
-      <div
-        style={{
-          width: "min(98vw, 1320px)",
-          margin: "0 auto 10px",
-          background: "linear-gradient(#3a3226, #2c2519)",
-          border: "1px solid #a8834a",
-          borderRadius: 12,
-          padding: "14px 20px",
-          color: "#f0e8d4",
-          fontFamily: "system-ui, sans-serif",
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 22,
-            fontWeight: 800,
-            color: "#ffd700",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {tag}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{title}</div>
-          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "#d4c5a0" }}>{card.text}</div>
-        </div>
-        {!finished && (
-          <div style={{ fontSize: 12.5, color: "#9a8d70", whiteSpace: "nowrap" }}>
-            {Math.min(stepIndex + 1, TUTORIAL_STEPS.length)} / {TUTORIAL_STEPS.length}
-          </div>
-        )}
-        {finished && battle.outcome === "defeat" && (
-          <button
-            onClick={() => {
-              setBattle(initBattle(TUTORIAL_MISSION, tutorialRoster()));
-              setRestartKey((k) => k + 1);
-            }}
-            style={btn("#2d7a3a")}
-          >
-            再來一次
-          </button>
-        )}
-        <button onClick={onExit} style={btn(finished ? "#ac4a2a" : "#4a4038")}>
-          {finished ? "完成教學" : "離開教學"}
-        </button>
+  const cardEl = (
+    <div className="frame fade-in" style={{ position: "absolute", left: 10, right: 60, top: 10, zIndex: 7, display: "flex", alignItems: "center", gap: 12, padding: "10px 14px" }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color: "var(--gold-2)", whiteSpace: "nowrap" }}>{tag}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700 }}>{title}</div>
+        <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ivory)" }}>{card.text}</div>
       </div>
-
-      <BattleScreen
-        key={restartKey}
-        battle={battle}
-        onBattleChange={setBattle}
-        onFinish={onExit}
-        missionTitle={TUTORIAL_MISSION.title}
-      />
+      {!finished && <div className="sub" style={{ whiteSpace: "nowrap" }}>{Math.min(stepIndex + 1, TUTORIAL_STEPS.length)} / {TUTORIAL_STEPS.length}</div>}
+      {finished && battle.outcome === "defeat" && (
+        <button className="btn btn-sm" onClick={() => { setBattle(initBattle(missionToScenario(TUTORIAL_MISSION), tutorialRoster(), "squire")); setRestartKey((k) => k + 1); }}>再來一次</button>
+      )}
     </div>
   );
-}
 
-function btn(bg: string): React.CSSProperties {
-  return {
-    background: bg,
-    color: "#fff",
-    border: "none",
-    padding: "9px 18px",
-    borderRadius: 6,
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  };
+  return (
+    <BattleScreen
+      key={restartKey}
+      battle={battle}
+      onBattleChange={setBattle}
+      onFinish={onExit}
+      onExit={onExit}
+      title={TUTORIAL_MISSION.title}
+      playerFaction="fantasy-human"
+      enemyFaction="fantasy-orc"
+      overlay={cardEl}
+    />
+  );
 }

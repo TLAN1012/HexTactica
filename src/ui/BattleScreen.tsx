@@ -1,21 +1,16 @@
 /**
- * BattleScreen — 戰鬥主畫面
+ * BattleScreen — 全螢幕戰場
  *
- *  - 點己方小隊:亮出移動範圍(黃)與可攻擊目標(紅,含移動後打得到的)
- *  - 點敵人:自動移動到最佳攻擊位並攻擊(WoA 式一鍵攻擊)
- *  - 懸停敵人:傷害預覽(預計殺傷 / 反擊損失)
- *  - 敵方回合由 AI 逐步自動執行
+ *  - 拖曳平移、滾輪 / 雙指縮放、「全圖」一鍵回到整張地圖
+ *  - 點己方部隊:亮出移動範圍(金)與可攻擊目標(紅,虛線 = 要先移動)
+ *  - 滑鼠:懸停敵人看預覽、點下去就打;觸控:第一下預覽、第二下出手
+ *  - 目標格插金旗;回合上限、勝利目標在頂欄;援軍與新回合用橫幅提示
+ *  - 見習難度可悔棋(限自己的回合)
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { audio, type SfxId } from "../audio/AudioManager";
-import {
-  hexCorners,
-  hexDistance,
-  hexKey,
-  hexToPixel,
-  parseHexKey,
-  type Hex,
-} from "../engine/hex";
+import { hexCorners, hexDistance, hexKey, hexToPixel, parseHexKey, type Hex } from "../engine/hex";
+import { chooseAiAction } from "../game/ai";
 import {
   attackableFrom,
   battleReducer,
@@ -26,451 +21,599 @@ import {
   reachable,
   squadAt,
   tracePath,
+  turnLimit,
   type BattleAction,
 } from "../game/battle";
-import { chooseAiAction } from "../game/ai";
 import { previewAttack } from "../game/combat";
+import { getCommander, getFaction } from "../game/factions";
 import { aliveSoldiers, maxHpPool, maxSoldiers } from "../game/progression";
 import { getTerrain } from "../game/terrain";
 import { getSquadType } from "../game/units";
-import type { AttackPreview, BattleState, Squad } from "../game/types";
-import { BattleLog } from "./BattleLog";
+import type { AttackPreview, BattleState, FactionId, Squad } from "../game/types";
+import { TRAIT_INFO } from "./traits";
+import { terrainArt, unitArt } from "./assets";
 
-const HEX_SIZE = 30;
-const ART = import.meta.env.BASE_URL + "art/";
-const TERRAIN_COVER = 1.18;
-const UNIT_COVER = 1.12;
-const AI_STEP_MS = 550;
+const HEX = 40;
+const AI_STEP_MS = 480;
 
-const SIDE_COLOR: Record<string, string> = {
-  player: "#2e6fd8",
-  enemy: "#c23b2b",
-};
+
 
 export interface BattleScreenProps {
   battle: BattleState;
   onBattleChange: (next: BattleState) => void;
   onFinish: () => void;
-  missionTitle: string;
+  title: string;
+  objectiveText?: string;
+  playerFaction: FactionId;
+  enemyFaction: FactionId;
+  allowUndo?: boolean;
+  /** 教學等外掛內容(疊在地圖上方) */
+  overlay?: React.ReactNode;
+  onExit?: () => void;
 }
 
-export function BattleScreen({ battle, onBattleChange, onFinish, missionTitle }: BattleScreenProps) {
+interface View {
+  x: number;
+  y: number;
+  k: number;
+}
+
+export function BattleScreen(props: BattleScreenProps) {
+  const { battle, onBattleChange, onFinish, title, objectiveText, playerFaction, enemyFaction, allowUndo, overlay, onExit } = props;
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hoveredHex, setHoveredHex] = useState<Hex | null>(null);
+  const [hoverHex, setHoverHex] = useState<Hex | null>(null);
+  const [armedTarget, setArmedTarget] = useState<string | null>(null);
+  /** 查看中的敵方部隊(點敵人但不是攻擊時) */
+  const [inspectId, setInspectId] = useState<string | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
+  const [banner, setBanner] = useState<{ id: number; text: string; sub?: string } | null>(null);
+  const [history, setHistory] = useState<BattleState[]>([]);
+  const lastPointer = useRef<"mouse" | "touch" | "pen">("mouse");
+
+  const colors = { player: getFaction(playerFaction).color, enemy: getFaction(enemyFaction).color };
+  const isPlayerTurn = battle.activeSide === "player" && battle.outcome === "ongoing";
+  const selected = selectedId ? battle.squads.find((s) => s.id === selectedId && s.hpPool > 0) : undefined;
+  const limit = turnLimit(battle);
 
   const dispatch = (action: BattleAction) => {
+    // 結束回合就不能再悔棋;其他動作把當下狀態存進悔棋歷史
+    if (action.type === "END_TURN") setHistory([]);
+    else if (allowUndo && battle.activeSide === "player") setHistory((h) => [...h.slice(-30), battle]);
     onBattleChange(battleReducer(battle, action));
   };
 
-  const selected = selectedId
-    ? battle.squads.find((s) => s.id === selectedId && s.hpPool > 0)
-    : undefined;
-
-  const isPlayerTurn = battle.activeSide === "player" && battle.outcome === "ongoing";
-
-  // ── 音效:對每筆新增的戰鬥紀錄播放對應音效 ─────────
-  const seenLogCount = useRef(battle.log.length);
+  // ── 音效 + 橫幅:依新增的戰鬥紀錄 ────────────────────────
+  const seenLog = useRef(battle.log.length);
   useEffect(() => {
-    const fresh = battle.log.slice(seenLogCount.current);
-    seenLogCount.current = battle.log.length;
+    const fresh = battle.log.slice(seenLog.current);
+    seenLog.current = battle.log.length;
     for (const e of fresh) {
       let sfx: SfxId | null = null;
       if (e.kind === "attack") sfx = e.text.includes("射擊") ? "ranged" : "melee";
       else if (e.kind === "retaliate") sfx = "retaliate";
       else if (e.kind === "death") sfx = "death";
-      else if (e.kind === "info" && e.text.includes("勝利")) sfx = "victory";
-      else if (e.kind === "info" && e.text.includes("敗北")) sfx = "defeat";
+      else if (e.kind === "info" && e.text.startsWith("勝利")) sfx = "victory";
+      else if (e.kind === "info" && e.text.startsWith("敗北")) sfx = "defeat";
       if (sfx) audio.playSfx(sfx);
+      if (e.kind === "event" && e.turn > 1) setBanner({ id: Date.now(), text: "⚑ 戰況變化", sub: e.text });
+      else if (e.kind === "info" && e.text.includes("我方行動")) setBanner({ id: Date.now(), text: `第 ${e.turn} 回合`, sub: limit ? `剩 ${limit - e.turn + 1} 回合` : undefined });
     }
-  }, [battle.log]);
+  }, [battle.log, limit]);
 
-  // ── AI 回合:逐步執行(每次 battle 變動重排下一步) ──
+
+  // ── AI 回合 ────────────────────────────────────────────
   useEffect(() => {
     if (battle.activeSide !== "enemy" || battle.outcome !== "ongoing") return;
-    const timer = setTimeout(() => {
-      const action = chooseAiAction(battle) ?? ({ type: "END_TURN" } as const);
-      onBattleChange(battleReducer(battle, action));
+    const t = setTimeout(() => {
+      const action = chooseAiAction(battle, "enemy") ?? ({ type: "END_TURN" } as const);
+      const next = battleReducer(battle, action);
+      onBattleChange(next === battle ? battleReducer(battle, { type: "END_TURN" }) : next);
     }, AI_STEP_MS);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [battle, onBattleChange]);
 
-  // ── 選中小隊的移動範圍與攻擊目標 ─────────────────────
+  // ── 選取、範圍、目標、預覽 ──────────────────────────────
   const reach = useMemo(() => {
     if (!selected || !isPlayerTurn || !canMove(selected)) return new Map<string, { pos: Hex; cost: number; from: string | null }>();
     return reachable(battle, selected);
   }, [battle, selected, isPlayerTurn]);
 
-  /** 此回合可攻擊的所有敵人(含移動後打得到的) */
-  const attackTargets = useMemo(() => {
-    const map = new Map<string, { target: Squad; pos: Hex; movedHexes: number }>();
-    if (!selected || !isPlayerTurn || !canAttack(selected)) return map;
+  const targets = useMemo(() => {
+    const m = new Map<string, { target: Squad; pos: Hex; movedHexes: number }>();
+    if (!selected || !isPlayerTurn || !canAttack(selected)) return m;
     for (const t of livingSquads(battle, "enemy")) {
       const best = bestAttackPosition(battle, selected, t);
-      if (best) map.set(hexKey(t.pos), { target: t, pos: best.pos, movedHexes: best.movedHexes });
+      if (best) m.set(hexKey(t.pos), { target: t, pos: best.pos, movedHexes: best.movedHexes });
     }
-    return map;
+    return m;
   }, [battle, selected, isPlayerTurn]);
 
-  // ── 懸停敵人 → 傷害預覽 ─────────────────────────────
-  const hoverPreview: (AttackPreview & { target: Squad }) | null = useMemo(() => {
-    if (!selected || !hoveredHex) return null;
-    const opt = attackTargets.get(hexKey(hoveredHex));
-    if (!opt) return null;
-    return { ...previewAttack(battle, selected, opt.target, opt.pos, opt.movedHexes), target: opt.target };
-  }, [battle, selected, hoveredHex, attackTargets]);
-
-  // ── 點擊處理 ────────────────────────────────────────
-  function handleHexClick(h: Hex) {
-    if (!isPlayerTurn) return;
-    const clicked = squadAt(battle, h);
-    const key = hexKey(h);
-
-    if (clicked && clicked.side === "player") {
-      if (clicked.acted) {
-        setSelectedId(null);
-        return;
-      }
-      setSelectedId(clicked.id === selectedId ? null : clicked.id);
-      return;
-    }
-
-    if (clicked && clicked.side === "enemy" && selected) {
-      const opt = attackTargets.get(key);
-      if (!opt) return;
-      if (hexDistance(selected.pos, clicked.pos) <= getSquadType(selected.typeId).range && canAttack(selected)) {
-        dispatch({ type: "ATTACK", squadId: selected.id, targetId: clicked.id });
-      } else {
-        dispatch({
-          type: "MOVE_AND_ATTACK",
-          squadId: selected.id,
-          to: opt.pos,
-          movedHexes: opt.movedHexes,
-          targetId: clicked.id,
-        });
-      }
-      setSelectedId(null);
-      return;
-    }
-
-    // 空格:移動(保持選取,移動後還能攻擊)
-    if (selected && reach.has(key)) {
-      const path = tracePath(selected, reach, h);
-      dispatch({ type: "MOVE", squadId: selected.id, to: h, movedHexes: path.length - 1 });
-      return;
-    }
-
-    setSelectedId(null);
-  }
-
-  // ── 幾何 ────────────────────────────────────────────
-  const terrainEntries = useMemo(() => Object.entries(battle.terrain), [battle.terrain]);
-  const pixels = terrainEntries.map(([key]) => hexToPixel(parseHexKey(key), HEX_SIZE));
-  const minX = Math.min(...pixels.map((p) => p.x)) - HEX_SIZE * 1.2;
-  const minY = Math.min(...pixels.map((p) => p.y)) - HEX_SIZE * 1.2;
-  const maxX = Math.max(...pixels.map((p) => p.x)) + HEX_SIZE * 1.2;
-  const maxY = Math.max(...pixels.map((p) => p.y)) + HEX_SIZE * 1.4;
-  const corners = hexCorners(HEX_SIZE);
-  const pointsStr = corners.map((c) => `${c.x},${c.y}`).join(" ");
-
-  // 遠程直接可打(不用移動)的格,畫實紅;要先移動才打得到的畫虛紅
-  const directTargets = useMemo(() => {
+  const direct = useMemo(() => {
     if (!selected || !canAttack(selected)) return new Set<string>();
     return new Set(attackableFrom(battle, selected).map((t) => hexKey(t.pos)));
   }, [battle, selected]);
 
+  const previewKey = armedTarget ?? (hoverHex ? hexKey(hoverHex) : null);
+  const preview: (AttackPreview & { target: Squad; from: Hex }) | null = useMemo(() => {
+    if (!selected || !previewKey) return null;
+    const opt = targets.get(previewKey);
+    if (!opt) return null;
+    return { ...previewAttack(battle, selected, opt.target, opt.pos, opt.movedHexes), target: opt.target, from: opt.pos };
+  }, [battle, selected, previewKey, targets]);
+
+  function attack(targetKey: string) {
+    if (!selected) return;
+    const opt = targets.get(targetKey);
+    if (!opt) return;
+    const range = getSquadType(selected.typeId).range;
+    if (hexKey(opt.pos) === hexKey(selected.pos) && hexDistance(selected.pos, opt.target.pos) <= range) {
+      dispatch({ type: "ATTACK", squadId: selected.id, targetId: opt.target.id });
+    } else {
+      dispatch({ type: "MOVE_AND_ATTACK", squadId: selected.id, to: opt.pos, movedHexes: opt.movedHexes, targetId: opt.target.id });
+    }
+    setSelectedId(null);
+    setArmedTarget(null);
+  }
+
+  function onHexTap(h: Hex) {
+    if (drag.current.moved) return;
+    if (!isPlayerTurn) return;
+    const key = hexKey(h);
+    const who = squadAt(battle, h);
+
+    setInspectId(null);
+    if (who && who.side === "player") {
+      setArmedTarget(null);
+      setSelectedId(who.acted || who.id === selectedId ? null : who.id);
+      return;
+    }
+    if (who && who.side === "enemy" && selected && targets.has(key)) {
+      if (lastPointer.current === "touch" && armedTarget !== key) {
+        setArmedTarget(key); // 觸控:第一下只預覽
+        return;
+      }
+      attack(key);
+      return;
+    }
+    if (who && who.side === "enemy") {
+      // 打不到(或沒選部隊):顯示敵方資料
+      setInspectId(who.id);
+      setArmedTarget(null);
+      return;
+    }
+    if (selected && reach.has(key)) {
+      const path = tracePath(selected, reach, h);
+      dispatch({ type: "MOVE", squadId: selected.id, to: h, movedHexes: path.length - 1 });
+      setArmedTarget(null);
+      return;
+    }
+    setArmedTarget(null);
+    setSelectedId(null);
+  }
+
+  // ── 幾何與鏡頭 ──────────────────────────────────────────
+  const hexEntries = useMemo(() => Object.entries(battle.terrain), [battle.terrain]);
+  const bounds = useMemo(() => {
+    const px = hexEntries.map(([k]) => hexToPixel(parseHexKey(k), HEX));
+    return {
+      minX: Math.min(...px.map((p) => p.x)) - HEX,
+      minY: Math.min(...px.map((p) => p.y)) - HEX,
+      maxX: Math.max(...px.map((p) => p.x)) + HEX,
+      maxY: Math.max(...px.map((p) => p.y)) + HEX,
+    };
+  }, [hexEntries]);
+  const corners = hexCorners(HEX);
+  const pts = corners.map((c) => `${c.x},${c.y}`).join(" ");
+
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: 800, h: 600 });
+  const [view, setView] = useState<View>({ x: 0, y: 0, k: 1 });
+
+  /** 貼合全圖(純計算,只依賴地圖範圍) */
+  const fitView = useCallback((w: number, h: number): View => {
+    const mw = bounds.maxX - bounds.minX;
+    const mh = bounds.maxY - bounds.minY;
+    const k = Math.min(w / mw, h / mh) * 0.98;
+    return { k, x: (w - mw * k) / 2 - bounds.minX * k, y: (h - mh * k) / 2 - bounds.minY * k };
+  }, [bounds]);
+
+  /** 開場與視窗大小改變時貼合全圖;手機上整張圖太小,改用 0.75 倍並置中,讓棋子看得清楚(可拖曳) */
+  const initialView = useCallback((w: number, h: number): View => {
+    const f = fitView(w, h);
+    const minK = 0.75;
+    if (!(f.k < minK && w < 700)) return f;
+    const cx = (bounds.minX + bounds.maxX) / 2;
+    const cy = (bounds.minY + bounds.maxY) / 2;
+    return { k: minK, x: w / 2 - cx * minK, y: h / 2 - cy * minK };
+  }, [fitView, bounds]);
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    // ResizeObserver 一掛上就會回呼一次:在回呼(非 render)裡同時更新尺寸與鏡頭
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setSize({ w, h });
+      setView(initialView(w, h));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [initialView]);
+
+  const zoomAt = (cx: number, cy: number, factor: number) => {
+    setView((v) => {
+      const fit = fitView(size.w, size.h).k;
+      const k = Math.min(3, Math.max(fit * 0.7, v.k * factor));
+      const r = k / v.k;
+      return { k, x: cx - (cx - v.x) * r, y: cy - (cy - v.y) * r };
+    });
+  };
+
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const drag = useRef({ moved: false, startX: 0, startY: 0, pinch: 0 });
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    lastPointer.current = e.pointerType as "mouse" | "touch" | "pen";
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    drag.current.moved = false;
+    drag.current.startX = e.clientX;
+    drag.current.startY = e.clientY;
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      drag.current.pinch = Math.hypot(a.x - b.x, a.y - b.y);
+    }
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!pointers.current.has(e.pointerId)) return;
+    const prev = pointers.current.get(e.pointerId)!;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const rect = mapRef.current!.getBoundingClientRect();
+      if (drag.current.pinch > 0) zoomAt((a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top, d / drag.current.pinch);
+      drag.current.pinch = d;
+      drag.current.moved = true;
+      return;
+    }
+    if (Math.hypot(e.clientX - drag.current.startX, e.clientY - drag.current.startY) > 8) drag.current.moved = true;
+    if (drag.current.moved) {
+      setView((v) => ({ ...v, x: v.x + e.clientX - prev.x, y: v.y + e.clientY - prev.y }));
+      mapRef.current?.classList.add("dragging");
+    }
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) drag.current.pinch = 0;
+    mapRef.current?.classList.remove("dragging");
+    // 拖曳結束後的 click 不算點格子
+    setTimeout(() => (drag.current.moved = false), 0);
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    const rect = mapRef.current!.getBoundingClientRect();
+    zoomAt(e.clientX - rect.left, e.clientY - rect.top, e.deltaY < 0 ? 1.12 : 1 / 1.12);
+  };
+
+  // ── 繪製 ────────────────────────────────────────────────
+  const objectives = new Set(battle.objectiveHexes);
+  const enemiesLeft = livingSquads(battle, "enemy").length;
+  const playersLeft = livingSquads(battle, "player").length;
+
   return (
-    <div
-      style={{
-        width: "min(98vw, 1320px)",
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
+    <div className="battle">
+      <div className="battle-top">
+        {onExit && (
+          <button className="btn btn-sm btn-ghost" onClick={onExit} title="撤退">
+            ✕
+          </button>
+        )}
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "var(--font-ui)", color: "var(--gold-2)", fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
+          {objectiveText && (
+            <div className="sub" style={{ fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={objectiveText}>
+              ⚑ {objectiveText}
+            </div>
+          )}
+        </div>
+        <span className="chip" title="回合">
+          回合 {battle.turn}
+          {limit ? ` / ${limit}` : ""}
+        </span>
+        <span className="chip" style={{ color: colors.player }}>我 {playersLeft}</span>
+        <span className="chip" style={{ color: colors.enemy }}>敵 {enemiesLeft}</span>
+      </div>
+
       <div
-        style={{
-          background: "#2a2520",
-          borderRadius: 12,
-          overflow: "hidden",
-          boxShadow: "0 6px 32px rgba(0,0,0,0.35)",
-          position: "relative",
-        }}
+        className="battle-map"
+        ref={mapRef}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onWheel={onWheel}
       >
-        <svg
-          viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{ width: "100%", display: "block", maxHeight: "72vh" }}
-        >
+        <svg>
           <defs>
             <clipPath id="hexClip">
-              <polygon points={pointsStr} />
+              <polygon points={pts} />
             </clipPath>
+            <clipPath id="tokenClip">
+              <circle r={HEX * 0.7} />
+            </clipPath>
+            <radialGradient id="vignette" cx="50%" cy="50%" r="75%">
+              <stop offset="60%" stopColor="rgba(0,0,0,0)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0.35)" />
+            </radialGradient>
           </defs>
-
-          {/* 地形層 */}
-          {terrainEntries.map(([key, terrainId]) => {
-            const h = parseHexKey(key);
-            const { x, y } = hexToPixel(h, HEX_SIZE);
-            const terrain = getTerrain(terrainId);
-            const inReach = reach.has(key);
-            const isTarget = attackTargets.has(key);
-            const isHovered = hoveredHex && hexKey(hoveredHex) === key;
-            return (
-              <g
-                key={key}
-                transform={`translate(${x}, ${y})`}
-                onClick={() => handleHexClick(h)}
-                onMouseEnter={() => setHoveredHex(h)}
-                onMouseLeave={() => setHoveredHex(null)}
-                style={{ cursor: inReach || isTarget || squadAt(battle, h) ? "pointer" : "default" }}
-              >
-                <polygon points={pointsStr} fill={terrain.color} stroke="#1a1612" strokeWidth={0.8} />
-                {terrain.hasArt && (
-                  <image
-                    href={`${ART}terrain/${terrainId}.png`}
-                    x={-HEX_SIZE * TERRAIN_COVER}
-                    y={-HEX_SIZE * TERRAIN_COVER}
-                    width={HEX_SIZE * 2 * TERRAIN_COVER}
-                    height={HEX_SIZE * 2 * TERRAIN_COVER}
-                    clipPath="url(#hexClip)"
-                    preserveAspectRatio="xMidYMid slice"
-                    style={{ pointerEvents: "none" }}
-                  />
-                )}
-                <polygon
-                  points={pointsStr}
-                  fill="none"
-                  stroke="#1a1612"
-                  strokeWidth={0.8}
-                  style={{ pointerEvents: "none" }}
-                />
-                {inReach && (
-                  <polygon
-                    points={pointsStr}
-                    fill="rgba(255,220,100,0.32)"
-                    stroke="rgba(255,220,100,0.9)"
-                    strokeWidth={1.4}
-                    style={{ pointerEvents: "none" }}
-                  />
-                )}
-                {isTarget && (
-                  <polygon
-                    points={pointsStr}
-                    fill="rgba(255,40,30,0.35)"
-                    stroke="#ff3020"
-                    strokeWidth={2.2}
-                    strokeDasharray={directTargets.has(key) ? undefined : "6 4"}
-                    style={{ pointerEvents: "none" }}
-                  />
-                )}
-                {isHovered && (
-                  <polygon
-                    points={pointsStr}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.7)"
-                    strokeWidth={1.5}
-                    style={{ pointerEvents: "none" }}
-                  />
-                )}
-              </g>
-            );
-          })}
-
-          {/* 小隊層 */}
-          {livingSquads(battle).map((squad) => {
-            const { x, y } = hexToPixel(squad.pos, HEX_SIZE);
-            const type = getSquadType(squad.typeId);
-            const alive = aliveSoldiers(squad);
-            const hpRatio = squad.hpPool / maxHpPool(squad.typeId, squad.level);
-            const isSelected = squad.id === selectedId;
-            const dimmed =
-              squad.side === "player" && isPlayerTurn && squad.acted;
-            return (
-              <g key={squad.id} transform={`translate(${x}, ${y})`} style={{ pointerEvents: "none" }}>
-                <image
-                  href={`${ART}units/${type.art}.png`}
-                  x={-HEX_SIZE * UNIT_COVER}
-                  y={-HEX_SIZE * UNIT_COVER}
-                  width={HEX_SIZE * 2 * UNIT_COVER}
-                  height={HEX_SIZE * 2 * UNIT_COVER}
-                  clipPath="url(#hexClip)"
-                  preserveAspectRatio="xMidYMid slice"
-                />
-                <polygon
-                  points={pointsStr}
-                  fill="none"
-                  stroke={SIDE_COLOR[squad.side]}
-                  strokeWidth={2.6}
-                  strokeLinejoin="round"
-                />
-                {dimmed && <polygon points={pointsStr} fill="rgba(0,0,0,0.45)" />}
-                {isSelected && (
-                  <polygon
-                    points={pointsStr}
-                    fill="none"
-                    stroke="#ffd700"
-                    strokeWidth={3}
-                    strokeLinejoin="round"
-                    style={{ filter: "drop-shadow(0 0 4px #ffd700)" }}
-                  />
-                )}
-                {/* 人數徽章(WoA 式) */}
-                <g transform={`translate(${HEX_SIZE * 0.42}, ${HEX_SIZE * 0.52})`}>
-                  <rect
-                    x={-13} y={-9} width={26} height={17} rx={4}
-                    fill={SIDE_COLOR[squad.side]}
-                    stroke="#111"
-                    strokeWidth={0.8}
-                  />
-                  <text
-                    x={0} y={4}
-                    textAnchor="middle"
-                    fontSize={12}
-                    fontWeight={700}
-                    fill="#fff"
-                    fontFamily="system-ui, sans-serif"
-                  >
-                    {alive}
-                  </text>
+          <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
+            {hexEntries.map(([key, tid]) => {
+              const h = parseHexKey(key);
+              const { x, y } = hexToPixel(h, HEX);
+              const t = getTerrain(tid);
+              const inReach = reach.has(key);
+              const isTarget = targets.has(key);
+              const hovered = hoverHex && hexKey(hoverHex) === key;
+              return (
+                <g
+                  key={key}
+                  transform={`translate(${x},${y})`}
+                  onClick={() => onHexTap(h)}
+                  onMouseEnter={() => setHoverHex(h)}
+                  onMouseLeave={() => setHoverHex(null)}
+                >
+                  <polygon points={pts} fill={t.color} />
+                  {t.hasArt && (
+                    <image
+                      href={terrainArt(tid)}
+                      x={-HEX * 1.05}
+                      y={-HEX * 1.05}
+                      width={HEX * 2.1}
+                      height={HEX * 2.1}
+                      clipPath="url(#hexClip)"
+                      preserveAspectRatio="xMidYMid slice"
+                      style={{ pointerEvents: "none" }}
+                    />
+                  )}
+                  <polygon points={pts} fill="url(#vignette)" stroke="rgba(10,6,8,0.85)" strokeWidth={1} style={{ pointerEvents: "none" }} />
+                  {objectives.has(key) && (
+                    <g style={{ pointerEvents: "none" }} transform={`translate(${-HEX * 0.35},${-HEX * 0.55})`}>
+                      <line x1={0} y1={0} x2={0} y2={HEX * 0.75} stroke="#3a2a14" strokeWidth={2} />
+                      <path d={`M0,0 L${HEX * 0.5},${HEX * 0.12} L0,${HEX * 0.26} Z`} fill="#e0b84a" stroke="#7a5a1a" strokeWidth={1} />
+                    </g>
+                  )}
+                  {inReach && <polygon points={pts} fill="rgba(240,213,138,0.28)" stroke="rgba(240,213,138,0.95)" strokeWidth={1.6} style={{ pointerEvents: "none" }} />}
+                  {isTarget && (
+                    <polygon
+                      points={pts}
+                      fill={armedTarget === key ? "rgba(224,60,60,0.5)" : "rgba(200,30,40,0.3)"}
+                      stroke="#ff4a4a"
+                      strokeWidth={2.4}
+                      strokeDasharray={direct.has(key) ? undefined : "7 5"}
+                      style={{ pointerEvents: "none" }}
+                    />
+                  )}
+                  {hovered && <polygon points={pts} fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth={1.6} style={{ pointerEvents: "none" }} />}
                 </g>
-                {/* 等級星 */}
-                {squad.level > 1 && (
-                  <text
-                    x={-HEX_SIZE * 0.62} y={-HEX_SIZE * 0.4}
-                    fontSize={10}
-                    fill="#ffd700"
-                    fontFamily="system-ui, sans-serif"
-                    style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}
-                  >
-                    {"★".repeat(squad.level - 1)}
-                  </text>
-                )}
-                {/* 血條 */}
-                <g transform={`translate(0, ${HEX_SIZE * 0.82})`}>
-                  <rect x={-HEX_SIZE * 0.55} y={0} width={HEX_SIZE * 1.1} height={4.5} fill="rgba(0,0,0,0.7)" rx={1.5} />
-                  <rect
-                    x={-HEX_SIZE * 0.55 + 0.5} y={0.6}
-                    width={(HEX_SIZE * 1.1 - 1) * Math.max(0, Math.min(1, hpRatio))}
-                    height={3.2}
-                    fill={hpRatio > 0.66 ? "#4ade80" : hpRatio > 0.33 ? "#fbbf24" : "#ef4444"}
-                    rx={1.5}
-                  />
-                </g>
-              </g>
-            );
-          })}
+              );
+            })}
+
+            {preview && selected && hexKey(preview.from) !== hexKey(selected.pos) && (
+              <circle
+                cx={hexToPixel(preview.from, HEX).x}
+                cy={hexToPixel(preview.from, HEX).y}
+                r={HEX * 0.3}
+                fill="none"
+                stroke="#f0d58a"
+                strokeWidth={2}
+                strokeDasharray="4 3"
+                style={{ pointerEvents: "none" }}
+              />
+            )}
+
+            {livingSquads(battle).map((s) => (
+              <SquadToken
+                key={s.id}
+                squad={s}
+                color={colors[s.side]}
+                selected={s.id === selectedId}
+                dimmed={s.side === "player" && isPlayerTurn && s.acted}
+                pts={pts}
+              />
+            ))}
+          </g>
         </svg>
 
-        {/* 傷害預覽浮窗 */}
-        {hoverPreview && (
-          <div
-            style={{
-              position: "absolute",
-              top: 10,
-              left: "50%",
-              transform: "translateX(-50%)",
-              background: "rgba(16,12,8,0.92)",
-              color: "#f0e8d4",
-              border: "1px solid #a8834a",
-              padding: "8px 16px",
-              borderRadius: 8,
-              fontSize: 13,
-              fontFamily: "system-ui, sans-serif",
-              pointerEvents: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <strong style={{ color: "#ff9070" }}>
-              預計殺傷 {hoverPreview.minKills}–{hoverPreview.maxKills} 人
-            </strong>
-            {hoverPreview.chargeBonus > 0 && (
-              <span style={{ marginLeft: 8, color: "#ffd700" }}>
-                衝鋒 +{Math.round(hoverPreview.chargeBonus * 100)}%
-              </span>
-            )}
-            {hoverPreview.usesMeleeFallback && (
-              <span style={{ marginLeft: 8, color: "#f87171" }}>⚠ 被迫近戰</span>
-            )}
-            {hoverPreview.willRetaliate ? (
-              <span style={{ marginLeft: 8, opacity: 0.9 }}>
-                ↩ 反擊損失 {hoverPreview.retaliationMinKills}–{hoverPreview.retaliationMaxKills} 人
-              </span>
-            ) : (
-              <span style={{ marginLeft: 8, opacity: 0.7 }}>不會被反擊</span>
+        <div className="zoom-ctl">
+          <button className="btn" onClick={() => zoomAt(size.w / 2, size.h / 2, 1.25)} aria-label="放大">＋</button>
+          <button className="btn" onClick={() => zoomAt(size.w / 2, size.h / 2, 0.8)} aria-label="縮小">－</button>
+          <button className="btn" style={{ fontSize: 12 }} onClick={() => setView(fitView(size.w, size.h))} aria-label="全圖">全圖</button>
+        </div>
+
+        {preview && (
+          <div className="frame preview fade-in">
+            <div className="row" style={{ gap: 8 }}>
+              <strong style={{ color: "#ff8a7a" }}>
+                預計擊倒 {preview.minKills}–{preview.maxKills} 人
+              </strong>
+              {preview.chargeBonus > 0 && <span style={{ color: "var(--gold-2)" }}>衝鋒 +{Math.round(preview.chargeBonus * 100)}%</span>}
+              {preview.usesMeleeFallback && <span style={{ color: "var(--bad)" }}>⚠ 被迫近戰</span>}
+              {preview.willRetaliate ? (
+                <span>↩ 反擊損失 {preview.retaliationMinKills}–{preview.retaliationMaxKills} 人</span>
+              ) : (
+                <span className="sub">不會被反擊</span>
+              )}
+            </div>
+            {preview.notes.length > 0 && <div className="sub" style={{ marginTop: 4 }}>{preview.notes.join("・")}</div>}
+            {armedTarget && (
+              <div className="row" style={{ marginTop: 8 }}>
+                <button className="btn btn-primary btn-sm" onClick={() => attack(armedTarget)}>⚔ 出擊</button>
+                <button className="btn btn-sm" onClick={() => setArmedTarget(null)}>取消</button>
+              </div>
             )}
           </div>
         )}
 
-        {/* 底部資訊列 */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            background: "rgba(20,16,12,0.92)",
-            color: "#f0e8d4",
-            padding: "10px 16px",
-            fontFamily: "system-ui, sans-serif",
-            fontSize: 13,
-          }}
-        >
-          <strong>{missionTitle}</strong>
-          <span>
-            回合 {battle.turn} —{" "}
-            <span style={{ color: SIDE_COLOR[battle.activeSide] }}>
-              {battle.activeSide === "player" ? "我方" : "敵方(AI 行動中…)"}
-            </span>
-          </span>
-          {selected && (
-            <span style={{ opacity: 0.9 }}>
-              {getSquadType(selected.typeId).name} Lv{selected.level} ‧{" "}
-              {aliveSoldiers(selected)}/{maxSoldiers(selected.typeId, selected.level)} 人
-              {selected.moved && !selected.acted && " ‧ 已移動,可攻擊"}
-            </span>
-          )}
-          <div style={{ flex: 1 }} />
-          {battle.outcome === "ongoing" ? (
-            <button
-              onClick={() => {
-                setSelectedId(null);
-                dispatch({ type: "END_TURN" });
-              }}
-              disabled={!isPlayerTurn}
-              style={{
-                background: isPlayerTurn ? "#ac4a2a" : "#555",
-                color: "#fff",
-                border: "none",
-                padding: "8px 18px",
-                borderRadius: 6,
-                cursor: isPlayerTurn ? "pointer" : "default",
-                fontSize: 13,
-                fontWeight: 600,
-              }}
-            >
-              結束回合
-            </button>
-          ) : (
-            <button
-              onClick={onFinish}
-              style={{
-                background: battle.outcome === "victory" ? "#2d7a3a" : "#8a3a2a",
-                color: "#fff",
-                border: "none",
-                padding: "8px 18px",
-                borderRadius: 6,
-                cursor: "pointer",
-                fontSize: 13,
-                fontWeight: 700,
-              }}
-            >
-              {battle.outcome === "victory" ? "🏆 勝利 — 領取戰利品" : "撤退回營地"}
-            </button>
-          )}
-        </div>
+        {selected && !preview && <UnitCard squad={selected} battle={battle} color={colors.player} />}
+        {!selected && inspectId && (() => {
+          const foe = battle.squads.find((x) => x.id === inspectId && x.hpPool > 0);
+          return foe ? <UnitCard squad={foe} battle={battle} color={colors.enemy} /> : null;
+        })()}
+
+        {logOpen && (
+          <div className="frame log open fade-in">
+            {battle.log.slice(-60).map((e, i) => (
+              <div key={i} style={{ color: LOG_COLOR[e.kind] }}>
+                {e.text}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {banner && (
+          <div key={banner.id} className="banner" onAnimationEnd={() => setBanner(null)}>
+            <div className="title-display" style={{ fontSize: "clamp(26px, 6vw, 44px)" }}>{banner.text}</div>
+            {banner.sub && <div className="frame" style={{ marginTop: 10, fontSize: 15, maxWidth: 520 }}>{banner.sub}</div>}
+          </div>
+        )}
+
+        {battle.activeSide === "enemy" && battle.outcome === "ongoing" && (
+          <div className="chip" style={{ position: "absolute", left: 10, top: 10, color: colors.enemy, zIndex: 4 }}>
+            ⚔ 敵軍行動中…
+          </div>
+        )}
+
+        {overlay}
+
+        {battle.outcome !== "ongoing" && (
+          <div className="outcome fade-in">
+            <div className="frame" style={{ textAlign: "center", padding: "24px 28px", maxWidth: 420 }}>
+              <div className="title-display" style={{ fontSize: 40 }}>{battle.outcome === "victory" ? "Victoria" : "Defeat"}</div>
+              <div style={{ fontSize: 22, margin: "6px 0 4px", color: battle.outcome === "victory" ? "var(--gold-2)" : "var(--bad)" }}>
+                {battle.outcome === "victory" ? "勝利" : "敗北"}
+              </div>
+              <div className="sub" style={{ marginBottom: 16 }}>{battle.outcomeReason}</div>
+              <button className="btn btn-primary btn-lg" onClick={onFinish}>繼續</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <BattleLog entries={battle.log} />
+      <div className="battle-bottom">
+        <button className="btn btn-sm" onClick={() => setLogOpen((o) => !o)}>📜 紀錄</button>
+        {allowUndo && (
+          <button
+            className="btn btn-sm"
+            disabled={!isPlayerTurn || history.length === 0}
+            onClick={() => {
+              const prev = history[history.length - 1];
+              if (prev) {
+                setHistory((h) => h.slice(0, -1));
+                setSelectedId(null);
+                setArmedTarget(null);
+                onBattleChange(prev);
+              }
+            }}
+          >
+            ↶ 悔棋
+          </button>
+        )}
+        <div className="grow sub" style={{ fontSize: 13, textAlign: "center" }}>
+          {isPlayerTurn
+            ? selected
+              ? selected.moved
+                ? "已移動:可以攻擊,或點別的部隊"
+                : "金色 = 可移動・紅色 = 可攻擊"
+              : `還有 ${livingSquads(battle, "player").filter((s) => !s.acted).length} 隊可行動`
+            : battle.outcome === "ongoing"
+              ? "敵軍回合"
+              : ""}
+        </div>
+        {battle.outcome === "ongoing" && (
+          <button
+            className="btn btn-primary"
+            disabled={!isPlayerTurn}
+            onClick={() => {
+              setSelectedId(null);
+              setArmedTarget(null);
+              dispatch({ type: "END_TURN" });
+            }}
+          >
+            結束回合 ▸
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const LOG_COLOR: Record<string, string> = {
+  move: "#8a8078",
+  attack: "#f4a6a0",
+  retaliate: "#f0c870",
+  death: "#ff7a7a",
+  info: "#a8c4f0",
+  event: "#f0d58a",
+};
+
+function SquadToken({ squad, color, selected, dimmed, pts }: { squad: Squad; color: string; selected: boolean; dimmed: boolean; pts: string }) {
+  const { x, y } = hexToPixel(squad.pos, HEX);
+  const alive = aliveSoldiers(squad);
+  const ratio = squad.hpPool / maxHpPool(squad.typeId, squad.level);
+  return (
+    <g transform={`translate(${x},${y})`} style={{ pointerEvents: "none" }}>
+      <polygon points={pts} fill="rgba(8,5,7,0.35)" stroke={color} strokeWidth={3.2} strokeLinejoin="round" />
+      <circle r={HEX * 0.72} fill="#120c10" stroke="#c9a24a" strokeWidth={1.6} />
+      <image href={unitArt(squad.typeId)} x={-HEX * 0.7} y={-HEX * 0.7} width={HEX * 1.4} height={HEX * 1.4} clipPath="url(#tokenClip)" preserveAspectRatio="xMidYMid slice" />
+      <circle r={HEX * 0.72} fill="none" stroke={color} strokeWidth={1.4} opacity={0.9} />
+      {dimmed && <circle r={HEX * 0.72} fill="rgba(0,0,0,0.55)" />}
+      {selected && <polygon points={pts} fill="none" stroke="#f0d58a" strokeWidth={3.4} style={{ filter: "drop-shadow(0 0 6px #f0d58a)" }} />}
+      {squad.commanderId && (
+        <text x={0} y={-HEX * 0.62} textAnchor="middle" fontSize={16} style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 3 }} fill="#f0d58a">
+          ♛
+        </text>
+      )}
+      <g transform={`translate(${HEX * 0.5},${HEX * 0.52})`}>
+        <rect x={-14} y={-10} width={28} height={18} rx={3} fill={color} stroke="#0d0a0c" strokeWidth={1} />
+        <text x={0} y={4} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" fontFamily="Cinzel, serif">
+          {alive}
+        </text>
+      </g>
+      {squad.level > 1 && (
+        <text x={-HEX * 0.62} y={HEX * 0.62} fontSize={11} fill="#f0d58a" style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2.5 }}>
+          {"★".repeat(squad.level - 1)}
+        </text>
+      )}
+      <g transform={`translate(0,${HEX * 0.86})`}>
+        <rect x={-HEX * 0.55} y={-2} width={HEX * 1.1} height={5} fill="rgba(0,0,0,0.75)" rx={2} />
+        <rect x={-HEX * 0.55 + 0.6} y={-1.3} width={(HEX * 1.1 - 1.2) * Math.max(0, Math.min(1, ratio))} height={3.6} rx={1.5} fill={ratio > 0.66 ? "#7fcf86" : ratio > 0.33 ? "#e6c060" : "#e06464"} />
+      </g>
+    </g>
+  );
+}
+
+function UnitCard({ squad, battle, color }: { squad: Squad; battle: BattleState; color: string }) {
+  const t = getSquadType(squad.typeId);
+  const terr = getTerrain(battle.terrain[hexKey(squad.pos)] ?? "plains");
+  const cmd = squad.commanderId ? getCommander(squad.commanderId) : null;
+  return (
+    <div className="frame unit-card fade-in">
+      <img className="token" src={unitArt(squad.typeId)} width={64} height={64} alt="" style={{ borderColor: color }} />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 700 }}>
+          {cmd ? `♛ ${cmd.name}・` : ""}
+          {t.name} <span className="stars">{"★".repeat(squad.level - 1)}</span>
+        </div>
+        <div className="sub" style={{ fontSize: 12.5 }}>
+          {aliveSoldiers(squad)}/{maxSoldiers(squad.typeId, squad.level)} 人・移動 {t.move}・射程 {t.range}・{terr.name}
+          {terr.defense ? `(承傷 ${terr.defense > 0 ? "−" : "+"}${Math.round(Math.abs(terr.defense) * 100)}%)` : ""}
+        </div>
+        {t.traits.filter((x) => x !== "levy").map((tr) => (
+          <div key={tr} style={{ fontSize: 12, color: "var(--gold-2)" }}>
+            {TRAIT_INFO[tr]}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

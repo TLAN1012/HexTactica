@@ -1,69 +1,63 @@
 /**
- * App — 畫面路由:標題 → 戰役地圖 ⇄ 軍營 / 戰鬥
- * 戰役進度即時寫入 localStorage;戰鬥不存檔(中離視同撤退)。
+ * App — 畫面流程
+ *
+ *   標題 → 戰役選單 ─┬─ 戰爭地圖 →(序章)→ 出征:戰前劇情 → 戰鬥 → 結局劇情 → 戰爭地圖
+ *                    └─ 奇幻外傳 → 戰鬥 → 奇幻外傳
+ *   任何地方都能進軍營(該戰役線自己的名冊與金幣)
+ *
+ * 戰役進度即時寫入 localStorage;戰鬥不存檔(中途離開視同撤退)。
  */
 import { useCallback, useEffect, useState } from "react";
+import { audio } from "./audio/AudioManager";
 import { initBattle } from "./game/battle";
 import {
   applyBattleResult,
   clearSave,
-  ensureViable,
-  getMission,
+  getTrack,
   loadCampaign,
   newCampaign,
+  prepareScenario,
   saveCampaign,
+  updateTrack,
   type BattleResult,
 } from "./game/campaign";
-import type { BattleState, CampaignState, MissionDef } from "./game/types";
-import { audio } from "./audio/AudioManager";
+import { getDifficulty } from "./game/difficulty";
+import { FANTASY_TRACK, getWar, missionToScenario } from "./game/scenarios";
+import type { BattleState, CampaignState, ScenarioDef, StoryPage } from "./game/types";
 import { ArmyScreen } from "./ui/ArmyScreen";
 import { BattleScreen } from "./ui/BattleScreen";
 import { CampaignScreen } from "./ui/CampaignScreen";
+import { HubScreen } from "./ui/HubScreen";
+import { StoryScreen } from "./ui/StoryScreen";
 import { TitleScreen } from "./ui/TitleScreen";
 import { TutorialScreen } from "./ui/TutorialScreen";
+import { WarScreen } from "./ui/WarScreen";
 
-type Screen = "title" | "campaign" | "army" | "battle" | "tutorial";
+type Screen = "title" | "hub" | "war" | "fantasy" | "army" | "battle" | "story" | "tutorial";
 
-/** 全域靜音鈕(固定右上角) */
-function MuteButton() {
-  const [muted, setMuted] = useState(audio.isMuted());
-  return (
-    <button
-      onClick={() => setMuted(audio.toggleMute())}
-      title={muted ? "開啟音樂" : "靜音"}
-      style={{
-        position: "fixed",
-        top: 10,
-        right: 10,
-        zIndex: 50,
-        background: "rgba(20,16,12,0.7)",
-        color: "#f0e8d4",
-        border: "1px solid #4a4034",
-        borderRadius: 8,
-        width: 40,
-        height: 40,
-        fontSize: 18,
-        cursor: "pointer",
-      }}
-    >
-      {muted ? "🔇" : "🔊"}
-    </button>
-  );
+interface StoryState {
+  pages: StoryPage[];
+  background?: string;
+  title?: string;
+  then: () => void;
 }
 
-function AppInner() {
+const SEEN_KEY = "hextactica-seen-intro";
+
+export default function App() {
   const [screen, setScreen] = useState<Screen>("title");
-  const [tutorialReturn, setTutorialReturn] = useState<Screen>("title");
   const [campaign, setCampaign] = useState<CampaignState | null>(null);
   const [battle, setBattle] = useState<BattleState | null>(null);
+  const [scenario, setScenario] = useState<ScenarioDef | null>(null);
+  const [trackId, setTrackId] = useState<string>("war-1066");
   const [lastResult, setLastResult] = useState<BattleResult | null>(null);
+  const [story, setStory] = useState<StoryState | null>(null);
+  const [armyReturn, setArmyReturn] = useState<Screen>("war");
 
-  // 戰役有變動就自動存檔
   useEffect(() => {
     if (campaign) saveCampaign(campaign);
   }, [campaign]);
 
-  // 首次互動解鎖 AudioContext(瀏覽器 autoplay 政策)
   useEffect(() => {
     const unlock = () => audio.unlock();
     window.addEventListener("pointerdown", unlock);
@@ -74,117 +68,175 @@ function AppInner() {
     };
   }, []);
 
-  // 依畫面切換配樂
   useEffect(() => {
     audio.playBgm(screen === "battle" || screen === "tutorial" ? "battle" : "camp");
   }, [screen]);
 
-  const updateCampaign = useCallback((next: CampaignState) => {
-    setCampaign(ensureViable(next));
+  const playStory = useCallback((s: StoryState) => {
+    if (!s.pages.length) {
+      s.then();
+      return;
+    }
+    setStory(s);
+    setScreen("story");
   }, []);
 
-  const startMission = useCallback(
-    (mission: MissionDef) => {
-      if (!campaign) return;
-      setBattle(initBattle(mission, campaign.roster));
-      setScreen("battle");
+  const openWar = useCallback(
+    (warId: string) => {
+      setTrackId(warId);
+      setLastResult(null);
+      const war = getWar(warId);
+      const seen = localStorage.getItem(`${SEEN_KEY}-${warId}`);
+      if (!seen) {
+        try {
+          localStorage.setItem(`${SEEN_KEY}-${warId}`, "1");
+        } catch {
+          /* noop */
+        }
+        playStory({ pages: war.intro, background: "title.webp", title: war.title, then: () => setScreen("war") });
+      } else {
+        setScreen("war");
+      }
     },
-    [campaign],
+    [playStory],
+  );
+
+  const startBattle = useCallback(
+    (sc: ScenarioDef, tId: string) => {
+      if (!campaign) return;
+      const prepared = prepareScenario(sc, getTrack(campaign, tId));
+      setScenario(prepared);
+      setTrackId(tId);
+      const begin = () => {
+        setBattle(initBattle(prepared, getTrack(campaign, tId).roster, campaign.difficulty));
+        setScreen("battle");
+      };
+      playStory({ pages: prepared.intro ?? [], background: prepared.art, title: prepared.title, then: begin });
+    },
+    [campaign, playStory],
   );
 
   const finishBattle = useCallback(() => {
-    if (!campaign || !battle) return;
-    const mission = getMission(battle.missionId);
-    const { campaign: next, result } = applyBattleResult(campaign, battle, mission);
-    setCampaign(ensureViable(next));
+    if (!campaign || !battle || !scenario) return;
+    const { campaign: next, result } = applyBattleResult(campaign, trackId, battle, scenario);
+    setCampaign({ ...next, active: trackId });
     setLastResult(result);
     setBattle(null);
-    setScreen("campaign");
-  }, [campaign, battle]);
+    const back: Screen = trackId === FANTASY_TRACK ? "fantasy" : "war";
+    const outro = result.victory ? scenario.outroVictory : scenario.outroDefeat;
+    playStory({ pages: outro ?? [], background: scenario.art, then: () => setScreen(back) });
+  }, [campaign, battle, scenario, trackId, playStory]);
 
-  if (screen === "tutorial") {
-    return <TutorialScreen onExit={() => setScreen(tutorialReturn)} />;
-  }
+  // ── 畫面 ──────────────────────────────────────────────
+  let body: React.ReactNode = null;
 
-  if (screen === "title") {
-    return (
+  if (screen === "story" && story) {
+    body = (
+      <StoryScreen
+        key={story.pages[0]?.text}
+        pages={story.pages}
+        background={story.background}
+        title={story.title}
+        onDone={() => {
+          const then = story.then;
+          setStory(null);
+          then();
+        }}
+      />
+    );
+  } else if (screen === "tutorial") {
+    body = <TutorialScreen onExit={() => setScreen(campaign ? "hub" : "title")} />;
+  } else if (screen === "title" || !campaign) {
+    body = (
       <TitleScreen
         hasSave={loadCampaign() !== null}
-        onTutorial={() => {
-          setTutorialReturn("title");
-          setScreen("tutorial");
-        }}
+        onTutorial={() => setScreen("tutorial")}
         onContinue={() => {
           const saved = loadCampaign();
           if (saved) {
             setCampaign(saved);
-            setLastResult(null);
-            setScreen("campaign");
+            setScreen("hub");
           }
         }}
-        onNewGame={() => {
+        onNewGame={(d) => {
           clearSave();
-          setCampaign(newCampaign());
-          setLastResult(null);
-          setScreen("campaign");
+          setCampaign(newCampaign(d));
+          setScreen("hub");
         }}
       />
     );
-  }
-
-  if (!campaign) {
-    setScreen("title");
-    return null;
-  }
-
-  if (screen === "army") {
-    return (
-      <ArmyScreen
+  } else if (screen === "hub") {
+    body = (
+      <HubScreen
         campaign={campaign}
-        onChange={updateCampaign}
-        onBack={() => setScreen("campaign")}
+        onOpenWar={openWar}
+        onOpenFantasy={() => {
+          setTrackId(FANTASY_TRACK);
+          setLastResult(null);
+          setScreen("fantasy");
+        }}
+        onDifficulty={(d) => setCampaign({ ...campaign, difficulty: d })}
+        onTutorial={() => setScreen("tutorial")}
+        onTitle={() => setScreen("title")}
+      />
+    );
+  } else if (screen === "war") {
+    const war = getWar(trackId);
+    body = (
+      <WarScreen
+        war={war}
+        track={getTrack(campaign, trackId)}
+        lastResult={lastResult}
+        onStart={(sc) => startBattle(sc, trackId)}
+        onArmy={() => {
+          setArmyReturn("war");
+          setScreen("army");
+        }}
+        onBack={() => setScreen("hub")}
+        onEpilogue={() => playStory({ pages: war.epilogue, background: "title.webp", then: () => setScreen("war") })}
+      />
+    );
+  } else if (screen === "fantasy") {
+    body = (
+      <CampaignScreen
+        track={getTrack(campaign, FANTASY_TRACK)}
+        lastResult={lastResult}
+        onStartMission={(m) => startBattle(missionToScenario(m), FANTASY_TRACK)}
+        onOpenArmy={() => {
+          setArmyReturn("fantasy");
+          setScreen("army");
+        }}
+        onBack={() => setScreen("hub")}
+      />
+    );
+  } else if (screen === "army") {
+    body = (
+      <ArmyScreen
+        track={getTrack(campaign, trackId)}
+        trackId={trackId}
+        onChange={(t) => setCampaign(updateTrack(campaign, trackId, () => t))}
+        onBack={() => setScreen(armyReturn)}
+      />
+    );
+  } else if (screen === "battle" && battle && scenario) {
+    body = (
+      <BattleScreen
+        battle={battle}
+        onBattleChange={setBattle}
+        onFinish={finishBattle}
+        onExit={() => {
+          if (confirm("撤退?這場戰鬥會算作敗北。")) {
+            setBattle({ ...battle, outcome: "defeat", outcomeReason: "撤退" });
+          }
+        }}
+        title={scenario.title}
+        objectiveText={scenario.objectiveText}
+        playerFaction={scenario.playerFaction}
+        enemyFaction={scenario.enemyFaction}
+        allowUndo={getDifficulty(campaign.difficulty).allowUndo}
       />
     );
   }
 
-  if (screen === "battle" && battle) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#1a1510", padding: "16px 0 32px" }}>
-        <BattleScreen
-          battle={battle}
-          onBattleChange={setBattle}
-          onFinish={finishBattle}
-          missionTitle={getMission(battle.missionId).title}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <CampaignScreen
-      campaign={campaign}
-      lastResult={lastResult}
-      onStartMission={startMission}
-      onOpenArmy={() => {
-        setLastResult(null);
-        setScreen("army");
-      }}
-      onTutorial={() => {
-        setTutorialReturn("campaign");
-        setScreen("tutorial");
-      }}
-      onBackToTitle={() => setScreen("title")}
-    />
-  );
+  return <>{body}</>;
 }
-
-function App() {
-  return (
-    <>
-      <MuteButton />
-      <AppInner />
-    </>
-  );
-}
-
-export default App;
