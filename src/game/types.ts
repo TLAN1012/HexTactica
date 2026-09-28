@@ -309,6 +309,12 @@ export interface BattleState {
   pendingReinforcements: Reinforcement[];
   /** 目標格(axial key),戰場上畫旗 */
   objectiveHexes: string[];
+  /** 戰場上可用的金幣(緊急整補用) */
+  gold: number;
+  /** 本場已花掉的金幣(結算時從戰役線扣) */
+  goldSpent: number;
+  /** 本場已整補過的小隊 */
+  reinforced: string[];
 }
 
 export interface BattleLogEntry {

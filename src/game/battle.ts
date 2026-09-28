@@ -92,6 +92,7 @@ export function initBattle(
   scenario: ScenarioDef,
   roster: RosterSquad[],
   difficultyId: DifficultyId = "knight",
+  gold = 0,
 ): BattleState {
   const map = buildMap(scenario);
   const diff = getDifficulty(difficultyId);
@@ -168,6 +169,9 @@ export function initBattle(
     defeat: scenario.defeat,
     pendingReinforcements: (scenario.reinforcements ?? []).map((r) => ({ ...r })),
     objectiveHexes: [...new Set(objectiveCells.map((c) => hexKey(cellToHex(c))))],
+    gold,
+    goldSpent: 0,
+    reinforced: [],
   };
 }
 
@@ -317,6 +321,8 @@ export type BattleAction =
   | { type: "MOVE"; squadId: string; to: Hex; movedHexes: number }
   | { type: "ATTACK"; squadId: string; targetId: string }
   | { type: "MOVE_AND_ATTACK"; squadId: string; to: Hex; movedHexes: number; targetId: string }
+  /** 緊急整補:補回滿編 20%,花 3 倍補兵價,用掉這隊本回合的行動 */
+  | { type: "REINFORCE"; squadId: string }
   /** 原地待命(結束這隊的啟動;AI 的固守隊也用它) */
   | { type: "HOLD"; squadId: string }
   | { type: "END_TURN" };
@@ -431,6 +437,21 @@ export function battleReducer(
       const moved = applyMove(state, action.squadId, action.to);
       if (!moved) return state;
       return resolveAttack(moved.state, action.squadId, action.targetId, rng);
+    }
+
+    case "REINFORCE": {
+      const squad = state.squads.find((s) => s.id === action.squadId);
+      if (!squad) return state;
+      const info = reinforceInfo(state, squad);
+      if (!info.ok) return state;
+      const hp = soldierHp(squad.typeId, squad.level);
+      let next = updateSquad(state, squad.id, {
+        hpPool: Math.min(maxHpPool(squad.typeId, squad.level), squad.hpPool + info.soldiers * hp),
+        acted: true,
+        moved: true,
+      });
+      next = { ...next, gold: next.gold - info.cost, goldSpent: next.goldSpent + info.cost, reinforced: [...next.reinforced, squad.id] };
+      return pushLog(next, { kind: "event", text: `${squadLabel(squad)}緊急整補 +${info.soldiers} 人(花費 ${info.cost} 金)` });
     }
 
     case "HOLD": {
@@ -630,3 +651,36 @@ export function turnLimit(state: BattleState): number | null {
 export { getTerrain };
 export const reinforcementsFor = (state: BattleState, side: SideId): Reinforcement[] =>
   state.pendingReinforcements.filter((r) => r.side === side);
+
+// ═══════════════════════════════════════════════════════════
+// 緊急整補
+// ═══════════════════════════════════════════════════════════
+
+export const REINFORCE_FRACTION = 0.2;
+export const REINFORCE_PRICE_MUL = 3;
+
+export interface ReinforceInfo {
+  ok: boolean;
+  soldiers: number;
+  cost: number;
+  /** 不能整補的原因(按鈕上顯示) */
+  reason?: string;
+}
+
+/** 這一隊現在能不能緊急整補、補幾人、要多少錢 */
+export function reinforceInfo(state: BattleState, squad: Squad): ReinforceInfo {
+  const max = maxSoldiers(squad.typeId, squad.level);
+  const alive = Math.ceil(squad.hpPool / soldierHp(squad.typeId, squad.level));
+  const soldiers = Math.min(Math.ceil(max * REINFORCE_FRACTION), max - alive);
+  const cost = soldiers * getSquadType(squad.typeId).soldierCost * REINFORCE_PRICE_MUL;
+  const fail = (reason: string): ReinforceInfo => ({ ok: false, soldiers, cost, reason });
+  if (state.outcome !== "ongoing" || squad.side !== "player" || state.activeSide !== "player") return fail("不是我方回合");
+  if (squad.hpPool <= 0) return fail("已全滅");
+  if (state.reinforced.includes(squad.id)) return fail("本場已整補過");
+  if (soldiers <= 0) return fail("人數已滿");
+  if (squad.acted || squad.moved) return fail("本回合已行動");
+  const near = new Set(hexNeighbors(squad.pos).map(hexKey));
+  if (livingSquads(state, "enemy").some((e) => near.has(hexKey(e.pos)))) return fail("正與敵軍交戰");
+  if (state.gold < cost) return fail(`金幣不足(需 ${cost})`);
+  return { ok: true, soldiers, cost };
+}

@@ -19,6 +19,7 @@ import {
   canMove,
   livingSquads,
   reachable,
+  reinforceInfo,
   squadAt,
   tracePath,
   turnLimit,
@@ -323,6 +324,7 @@ export function BattleScreen(props: BattleScreenProps) {
           回合 {battle.turn}
           {limit ? ` / ${limit}` : ""}
         </span>
+        {battle.gold > 0 || battle.goldSpent > 0 ? <span className="chip" style={{ color: "var(--gold-2)" }}>🪙 {battle.gold}</span> : null}
         <span className="chip" style={{ color: colors.player }}>我 {playersLeft}</span>
         <span className="chip" style={{ color: colors.enemy }}>敵 {enemiesLeft}</span>
       </div>
@@ -459,7 +461,30 @@ export function BattleScreen(props: BattleScreenProps) {
         )}
 
         {(hoverHex ?? focusHex) && <TerrainCard battle={battle} hex={(hoverHex ?? focusHex)!} />}
-        {selected && !preview && <UnitCard squad={selected} color={colors.player} />}
+        {selected && !preview && (
+          <UnitCard
+            squad={selected}
+            color={colors.player}
+            action={(() => {
+              const info = reinforceInfo(battle, selected);
+              if (info.soldiers <= 0) return null;
+              return (
+                <button
+                  className="btn btn-sm"
+                  style={{ marginTop: 6 }}
+                  disabled={!info.ok}
+                  title="補回滿編 20% 的兵力,價格是平常補兵的 3 倍,並用掉這隊本回合的行動。每場每隊一次,不能在交戰中整補。"
+                  onClick={() => {
+                    dispatch({ type: "REINFORCE", squadId: selected.id });
+                    setSelectedId(null);
+                  }}
+                >
+                  {info.ok ? `🛡 緊急整補 +${info.soldiers} 人(${info.cost} 金)` : `緊急整補:${info.reason}`}
+                </button>
+              );
+            })()}
+          />
+        )}
         {!selected && inspectId && (() => {
           const foe = battle.squads.find((x) => x.id === inspectId && x.hpPool > 0);
           return foe ? <UnitCard squad={foe} color={colors.enemy} /> : null;
@@ -623,7 +648,7 @@ function SquadToken({ squad, color, selected, dimmed, pts }: { squad: Squad; col
   );
 }
 
-function UnitCard({ squad, color }: { squad: Squad; color: string }) {
+function UnitCard({ squad, color, action }: { squad: Squad; color: string; action?: React.ReactNode }) {
   const t = getSquadType(squad.typeId);
   const cmd = squad.commanderId ? getCommander(squad.commanderId) : null;
   const enemy = squad.side === "enemy";
@@ -653,6 +678,7 @@ function UnitCard({ squad, color }: { squad: Squad; color: string }) {
                 {TRAIT_INFO[tr]}
               </div>
             ))}
+            {action}
           </>
         )}
       </div>

@@ -292,7 +292,7 @@ export function applyBattleResult(
 
   let next: CampaignTrack = {
     ...track,
-    gold: track.gold + goldEarned,
+    gold: Math.max(0, track.gold - (battle.goldSpent ?? 0)) + goldEarned,
     completedMissions: firstClear ? [...track.completedMissions, scenario.id] : track.completedMissions,
     roster: roster.filter((r): r is RosterSquad => r !== null),
   };
