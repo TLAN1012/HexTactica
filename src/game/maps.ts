@@ -1,7 +1,52 @@
 /**
- * 地圖產生 — 以任務種子決定地形,同一關每次進入都長一樣。
+ * 地圖:
+ *  - 歷史戰役用「手繪地圖」:每列一個字串、每個字元一格地形(TERRAIN_CHARS),照真實戰場畫
+ *  - 奇幻外傳沿用種子隨機地圖,同一關每次進入都長一樣
+ *
+ * 座標:手繪地圖與劇本裡的位置用 offset「欄, 列」(Cell),和字串位置一一對應;
+ * 引擎內部一律用 axial (q, r)。rectangleMap 的排法是 q = 欄 − floor(列/2)。
  */
 import { hexKey, rectangleMap, type Hex } from "../engine/hex";
+import type { Cell } from "./types";
+
+/** 手繪地圖字元 → 地形 id */
+export const TERRAIN_CHARS: Record<string, string> = {
+  ".": "plains",
+  h: "hills",
+  f: "forest",
+  s: "swamp",
+  "~": "river",
+  "=": "ford",
+  b: "bridge",
+  v: "village",
+};
+
+export function cellToHex([col, row]: Cell): Hex {
+  return { q: col - Math.floor(row / 2), r: row };
+}
+
+export function hexToCell(h: Hex): Cell {
+  return [h.q + Math.floor(h.r / 2), h.r];
+}
+
+/** 解析手繪地圖;字元不認得、列長不一致都直接丟錯(讓劇本測試抓到) */
+export function parseMapRows(rows: string[]): GeneratedMap {
+  const height = rows.length;
+  const width = rows[0]?.length ?? 0;
+  const terrain: Record<string, string> = {};
+  const hexes: Hex[] = [];
+  rows.forEach((line, row) => {
+    if (line.length !== width) throw new Error(`地圖第 ${row} 列長度 ${line.length} ≠ ${width}`);
+    [...line].forEach((ch, col) => {
+      const id = TERRAIN_CHARS[ch];
+      if (!id) throw new Error(`地圖第 ${row} 列第 ${col} 欄:不認得的字元「${ch}」`);
+      const h = cellToHex([col, row]);
+      terrain[hexKey(h)] = id;
+      hexes.push(h);
+    });
+  });
+  return { terrain, hexes, width, height };
+}
 
 /** mulberry32 — 種子式 PRNG,確保關卡地圖固定 */
 export function seededRng(seed: number): () => number {
